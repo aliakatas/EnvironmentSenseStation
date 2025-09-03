@@ -1,2 +1,50 @@
 # EnvironmentSenseStation
 Environmental parameters sensors driven by a Raspberry Pico 2 W.
+
+## Features
+- Measure ambient temperature, pressure, and humidity.
+- Measure board temperature.
+- Serve data over LAN using the onboard WiFi.
+
+## Hardware
+- Raspberry Pi Pico 2 WH from [The Pi Hut](https://thepihut.com/products/raspberry-pi-pico-2-w?variant=54063378760065). Product [specs](https://datasheets.raspberrypi.com/picow/pico-2-w-datasheet.pdf).
+- BME280 sensor from [The Pi Hut](https://thepihut.com/products/bme280-environmental-sensor). Product [specs](https://www.waveshare.com/wiki/BME280_Environmental_Sensor).
+- Breadboard
+- Jumper cables x4
+- Power supply (for independent operation)
+
+### Dependencies
+To be able to talk to the sensor, we need the following library:
+- [Micropython BME280](https://pypi.org/project/micropython-bme280/)
+
+## Connect the sensor
+The BME280 sensor from Waveshare has 6 pins and can be used with I2C or SPI. 
+This project is using the I2C implementation.
+
+| Function Pin | Controller Slot | Description |
+| -------- | ------- | ------- |
+| VCC | 3.3V / 5V | Power input |
+| GND | GND | Ground |
+| SDA | SDA | I2C data line |
+| SCL | SCL | I2C clock line |
+| ADDR | NC/GND | Address chip select (default is high): When the voltage is high, the address is 0 x 77. When the voltage is low, the address is: 0 x 76 |
+| CS | NC | Used for SPI mode |
+
+Based on the image below:
+![](https://docs.micropython.org/en/latest/_images/pico_pinout.png)
+
+We can use the following pin locations:
+- #1 for SDA
+- #2 for SCL
+- #38 for GND
+- #36 for VCC
+
+## Operation
+Before starting, make sure to install the latest firmware for the controller using the [official site](https://www.raspberrypi.com/documentation/microcontrollers/pico-series.html).
+Then, transfer the contents of the [src](./src/) folder to the Pico and test with Thonny to confirm there are no surprises.
+
+## Tips
+### Discover address of sensor
+If after wiring the sensor the script fails mentioning it can't find the address, it is worth running the [scan script](./src/scan_address.py).
+
+
