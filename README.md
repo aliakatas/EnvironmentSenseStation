@@ -53,4 +53,6 @@ Then, transfer the contents of the [src](./src/) folder to the Pico and test wit
 ### Discover address of sensor
 If after wiring the sensor the script fails mentioning it can't find the address, it is worth running the [scan script](./src/scan_address.py).
 
+### Discover local IP address of controller
+After the LED on the Pico turns on steady, go to your router's admin page and check for the connected devices - there should be an entry for "Pico2W".
 
