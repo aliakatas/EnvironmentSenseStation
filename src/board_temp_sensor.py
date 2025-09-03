@@ -1,7 +1,5 @@
 from machine import ADC
-
-def celsius_to_farenheit(val):
-    return (val * 9 / 5) + 32
+from utilities import celsius_to_farenheit
 
 class BoardTempSensor:
     
