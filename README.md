@@ -17,6 +17,12 @@ Environmental parameters sensors driven by a Raspberry Pico 2 W.
 To be able to talk to the sensor, we need the following library:
 - [Micropython BME280](https://pypi.org/project/micropython-bme280/)
 
+The library script [bme280.py](./src/bme280.py) has been modified by adding the following functions/properties to the class to make value reading easier:
+- environmental_parameters: function, returns the parameters below as a tuple
+- temperature: property (C)
+- humidity: property (%)
+- pressure: property (hPa)
+
 ## Connect the sensor
 The BME280 sensor from Waveshare has 6 pins and can be used with I2C or SPI. 
 This project is using the I2C implementation.
