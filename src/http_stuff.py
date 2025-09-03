@@ -7,13 +7,26 @@ def read_sensors(bme_sensor, board_sensor):
     temperature, pressure, humidity = bme_sensor.environmental_parameters()
     
     sensor_data = {
-        "timestamp": time.time(),
-        "board_temperature_C": board_sensor.temperatureC(),
-        "board_temperature_F": board_sensor.temperatureF(),
-        "temperature_C": temperature,
-        "temperature_F": celsius_to_farenheit(temperature),
-        "humidity": humidity,
-        "pressure": pressure,
+        "timestamp": {
+            "value": time.time(),
+            "unit": time.gmtime(0)     # see https://docs.python.org/3/library/time.html
+        },
+        "board_temperature": {
+            "value": board_sensor.temperatureC(),
+            "unit": "C"
+        },
+        "temperature": {
+            "value": temperature,
+            "unit": "C"
+        },
+        "humidity": {
+            "value": humidity,
+            "unit": "%"
+        },
+        "pressure": {
+            "value": pressure,
+            "unit": "hPa"
+        },
         "status": "ok"
     }
     return sensor_data
