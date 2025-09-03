@@ -49,6 +49,38 @@ We can use the following pin locations:
 Before starting, make sure to install the latest firmware for the controller using the [official site](https://www.raspberrypi.com/documentation/microcontrollers/pico-series.html).
 Then, transfer the contents of the [src](./src/) folder to the Pico and test with Thonny to confirm there are no surprises.
 
+Once the server is running on the controller, clients can request data by sending requests to "controller-IP/sensors".
+The response is in json format as follows:
+```json
+{
+   "timestamp": {
+      "value": <seconds since reference>,
+      "unit": "seconds",
+      "reference": <array in the form [YYYY, MM, DD, hh, mm, ss]>
+   },
+   "board_temperature": {
+      "value": <temperature>,
+      "unit": "C"
+   },
+   "temperature": {
+      "value": <temperature>,
+      "unit": "C"
+   },
+   "humidity": {
+      "value": <humidity>,
+      "unit": "%"
+   },
+   "pressure": {
+      "value": <pressure>,
+      "unit": "hPa"
+   },
+   "status": "ok"
+}
+```
+
+You may still contact the server through "controller-IP". However, a simple webpage will appear with a link directing to the sensors' endpoint.
+
+
 ## Tips
 ### Discover address of sensor
 If after wiring the sensor the script fails mentioning it can't find the address, it is worth running the [scan script](./src/scan_address.py).
