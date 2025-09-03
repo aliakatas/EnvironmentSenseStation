@@ -9,7 +9,8 @@ def read_sensors(bme_sensor, board_sensor):
     sensor_data = {
         "timestamp": {
             "value": time.time(),
-            "unit": time.gmtime(0)     # see https://docs.python.org/3/library/time.html
+            "unit": "seconds",
+            "reference": time.gmtime(0)     # see https://docs.python.org/3/library/time.html
         },
         "board_temperature": {
             "value": board_sensor.temperatureC(),
