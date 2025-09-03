@@ -31,7 +31,7 @@ class WiFiConnector:
     def __init__(self):
         self.con_attempts = 0
         self.MAX_CON_ATTEMPTS = MAX_NUM_ATTEMPTS
-        self.ip = None
+        self.connected = False
         
         wlan = network.WLAN(network.STA_IF)
         wlan.active(True)
@@ -57,22 +57,22 @@ class WiFiConnector:
             raise RuntimeError('network connection failed')
 
         print('connected')
-        status = wlan.ifconfig()
-        print( 'ip = ' + status[0] )
         pico_led.on()
-        self.ip = status[0]
+        self.connected = True
     
     def open_socket(self):
-        if self.ip is None:
-            raise RuntimeError('System has not acquired an IP')
+        if not self.connected:
+            raise RuntimeError('System has not been connected to WiFi')
         
         # Open a socket
-        address = (self.ip, 80)
-        self.connection = socket.socket()
-        self.connection.bind(address)
-        self.connection.listen(1)
-        print(self.connection)
-        return self.connection
+        addr = socket.getaddrinfo('0.0.0.0', 80)[0][-1]
+        s = socket.socket()
+        s.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+        s.bind(addr)
+        s.listen(1)
+
+        print('Server listening on', addr)
+        return s
         
     
         
