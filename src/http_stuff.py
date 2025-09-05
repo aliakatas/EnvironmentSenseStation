@@ -1,10 +1,12 @@
 import json
 import time
 from utilities import celsius_to_farenheit
+from capacitive_soil_sensor import get_soil_moisture
 
-def read_sensors(bme_sensor, board_sensor):
+def read_sensors(bme_sensor, board_sensor, soil_sensor):
     """Read your sensor data and return as dictionary"""
     temperature, pressure, humidity = bme_sensor.environmental_parameters()
+    soil_moisture = get_soil_moisture(soil_sensor)
     
     sensor_data = {
         "timestamp": {
@@ -28,6 +30,10 @@ def read_sensors(bme_sensor, board_sensor):
             "value": pressure,
             "unit": "hPa"
         },
+        "soil_moisture": {
+            "value": soil_moisture,
+            "unit": "%"
+        },
         "status": "ok"
     }
     return sensor_data
@@ -46,13 +52,13 @@ def create_http_response(data):
     return response
 
 
-def handle_request(request, bme_sensor, board_sensor):
+def handle_request(request, bme_sensor, board_sensor, soil_sensor):
     """Parse request and determine response"""
     lines = request.split('\n')
     if len(lines) > 0:
         method_line = lines[0]
         if 'GET /sensors' in method_line:
-            sensor_data = read_sensors(bme_sensor, board_sensor)
+            sensor_data = read_sensors(bme_sensor, board_sensor, soil_sensor)
             return create_http_response(sensor_data)
         elif 'GET /' in method_line:
             # Simple index page
