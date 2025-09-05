@@ -94,11 +94,9 @@ The response is in json format as follows:
       "value": <pressure>,
       "unit": "hPa"
    },
-   {
-      "soil": {
-         "value": <moisture>,
-         "unit": "%"
-      }
+   "soil": {
+      "value": <moisture>,
+      "unit": "%"
    },
    "status": "ok"
 }
