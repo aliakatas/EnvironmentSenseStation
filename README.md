@@ -3,14 +3,16 @@ Environmental parameters sensors driven by a Raspberry Pico 2 W.
 
 ## Features
 - Measure ambient temperature, pressure, and humidity.
+- Measure soil moisture.
 - Measure board temperature.
 - Serve data over LAN using the onboard WiFi.
 
 ## Hardware
 - Raspberry Pi Pico 2 WH from [The Pi Hut](https://thepihut.com/products/raspberry-pi-pico-2-w?variant=54063378760065). Product [specs](https://datasheets.raspberrypi.com/picow/pico-2-w-datasheet.pdf).
 - BME280 sensor from [The Pi Hut](https://thepihut.com/products/bme280-environmental-sensor). Product [specs](https://www.waveshare.com/wiki/BME280_Environmental_Sensor).
+- Capacitive soil moisture sensor (v2.0) from [The Pi Hut](https://thepihut.com/products/capacitive-soil-moisture-sensor).
 - Breadboard
-- Jumper cables x4
+- Jumper cables
 - Power supply (for independent operation)
 
 ### Dependencies
@@ -23,7 +25,7 @@ The library script [bme280.py](./src/bme280.py) has been modified by adding the 
 - humidity: property (%)
 - pressure: property (hPa)
 
-## Connect the sensor
+## Connect the sensors
 The BME280 sensor from Waveshare has 6 pins and can be used with I2C or SPI. 
 This project is using the I2C implementation.
 
@@ -44,6 +46,24 @@ We can use the following pin locations:
 - #2 for SCL
 - #38 for GND
 - #36 for VCC
+
+Similarly, for the soil moisture sensor which has 3 pins, the pins used are the following:
+- #31 for ADC
+- #38 for GND
+- #36 for VCC
+
+### Calibrate soil moisture sensor
+As this is an analogue sensor, you need to get some data to calibrate values for normal operation.
+Using the [soil_sensor_test](./src/soil_sensor_test.py) script, you can collect data for the sensor in dry and fully wet conditions.
+The test can be run in open air or by sticking the sensor in a pot.
+
+In open air, the sensor reads:
+- dry: 16%
+- wet: 67%
+
+In soil, the readings are below:
+- dry: TBC
+- wet: TBC
 
 ## Operation
 Before starting, make sure to install the latest firmware for the controller using the [official site](https://www.raspberrypi.com/documentation/microcontrollers/pico-series.html).
@@ -74,12 +94,19 @@ The response is in json format as follows:
       "value": <pressure>,
       "unit": "hPa"
    },
+   {
+      "soil": {
+         "value": <moisture>,
+         "unit": "%"
+      }
+   },
    "status": "ok"
 }
 ```
 
 You may still contact the server through "controller-IP". However, a simple webpage will appear with a link directing to the sensors' endpoint.
 
+----
 
 ## Tips
 ### Discover address of sensor
