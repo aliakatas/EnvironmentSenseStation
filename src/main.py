@@ -2,7 +2,7 @@
 from wifi_connector import WiFiConnector
 from board_temp_sensor import BoardTempSensor, celsius_to_farenheit
 from http_stuff import handle_request
-from machine import Pin, I2C
+from machine import Pin, I2C, ADC
 from bme280 import BME280
 import time
 import json
@@ -12,10 +12,13 @@ import json
 board_temp = BoardTempSensor()
 
 # Initialize I2C bus
-i2c = I2C(0, sda=Pin(0), scl=Pin(1), freq=400000) # Using GP16 and GP17
+i2c = I2C(0, sda=Pin(0), scl=Pin(1), freq=400000) 
 
 # Initialize the BME280 sensor
 bme = BME280(i2c=i2c, address=0x77)   # by default, the address should have been 0x76, however, my sensor is using the alternate
+
+# Initialize ADC on GP26 
+soil_sensor = ADC(Pin(26))
 
 def run_server(sock):
     """Run the HTTP server to serve sensor data"""
@@ -29,7 +32,7 @@ def run_server(sock):
             request = str(request)
             # print('Request:', request.split('\n')[0])  # Print first line
         
-            response = handle_request(request, bme, board_temp)
+            response = handle_request(request, bme, board_temp, soil_sensor)
         
             client.send(response.encode('utf-8'))
             client.close()
