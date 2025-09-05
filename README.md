@@ -62,7 +62,7 @@ In open air, the sensor reads:
 - wet: 67%
 
 In soil, the readings are below:
-- dry: TBC
+- dry: 19-20%
 - wet: TBC
 
 ## Operation
@@ -94,7 +94,7 @@ The response is in json format as follows:
       "value": <pressure>,
       "unit": "hPa"
    },
-   "soil": {
+   "soil_moisture": {
       "value": <moisture>,
       "unit": "%"
    },
