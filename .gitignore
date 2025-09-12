@@ -217,3 +217,6 @@ __marimo__/
 
 # My secrets
 secrets.py
+
+# Other venv's
+*-venv
