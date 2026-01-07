@@ -51,7 +51,7 @@ def write_data_to_postgres(
       
       # Insert data records
       insert_query = f"""
-      INSERT INTO {table_name} (date_time, temperature, humidity, pressure, soil_moisture, comment, board_temperature)
+      INSERT INTO {table_name} (date_time, temperature, humidity, pressure, comment, board_temperature)
       VALUES (%s, %s, %s, %s, %s, %s, %s);
       """
       
@@ -60,7 +60,6 @@ def write_data_to_postgres(
                         data_records["temperature"],
                         data_records["humidity"],
                         data_records["pressure"],
-                        data_records["soil_moisture"],
                         comment,
                         data_records["board_temperature"]))
       
