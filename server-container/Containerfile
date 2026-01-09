@@ -1,0 +1,24 @@
+FROM python:3.11-slim
+
+# Install cron and other utilities
+RUN apt-get update && apt-get install -y \
+    cron \
+    && rm -rf /var/lib/apt/lists/*
+
+# Set working directory
+WORKDIR /app
+
+# Copy server code
+COPY server/ /app/
+
+# Install Python dependencies
+RUN pip install --no-cache-dir -r requirements.txt
+
+# Create a cron job to run main.py every 10 minutes
+RUN echo "*/10 * * * * cd /app && /usr/local/bin/python main.py >> /var/log/cron.log 2>&1" | crontab -
+
+# Create log file
+RUN touch /var/log/cron.log
+
+# Run cron in foreground
+CMD ["cron", "-f"]

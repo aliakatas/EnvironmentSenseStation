@@ -1,12 +1,10 @@
 import json
 import time
 from utilities import celsius_to_farenheit
-from capacitive_soil_sensor import get_soil_moisture
 
 def read_sensors(bme_sensor, board_sensor, soil_sensor):
     """Read your sensor data and return as dictionary"""
     temperature, pressure, humidity = bme_sensor.environmental_parameters()
-    soil_moisture = get_soil_moisture(soil_sensor)
     
     sensor_data = {
         "timestamp": {
@@ -29,10 +27,6 @@ def read_sensors(bme_sensor, board_sensor, soil_sensor):
         "pressure": {
             "value": pressure,
             "unit": "hPa"
-        },
-        "soil_moisture": {
-            "value": soil_moisture,
-            "unit": "%"
         },
         "status": "ok"
     }

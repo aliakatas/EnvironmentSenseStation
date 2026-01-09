@@ -1,0 +1,31 @@
+services:
+  environment-sense-station:
+    build:
+      context: ..
+      dockerfile: server-container/Containerfile
+    container_name: aristos86/environment-sense-station
+    restart: unless-stopped
+    environment:
+      # Database connection details (update these with your values)
+      - DB_HOST=${DB_HOST:-localhost}
+      - DB_PORT=${DB_PORT:-5432}
+      - DB_NAME=${DB_NAME:-sensor_data}
+      - DB_USER=${DB_USER:-postgres}
+      - DB_PASSWORD=${DB_PASSWORD:-password}
+      - TABLE_NAME=${TABLE_NAME:-sensor_readings}
+      - SENSOR_URL=${SENSOR_URL:-http://localhost:8000}
+    volumes:
+      # Mount logs directory to persist cron logs
+      - ./logs:/var/log
+    # networks:
+    #   - sensor-network
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+# networks:
+#   sensor-network:
+#     driver: bridge
+

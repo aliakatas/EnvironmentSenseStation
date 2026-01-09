@@ -13,7 +13,6 @@ def query_environmental_sensors(url):
       temperature = data.get("temperature").get("value")
       humidity = data.get("humidity").get("value")
       pressure = data.get("pressure").get("value")
-      soil_moisture = data.get("soil_moisture").get("value")
 
       timestamp = data.get("timestamp").get("value")
       reference_time = data.get("timestamp").get("reference")  # e.g., [2025, 9, 6, 0, 0, 0]
@@ -33,7 +32,6 @@ def query_environmental_sensors(url):
          "temperature": temperature,
          "humidity": humidity,
          "pressure": pressure,
-         "soil_moisture": soil_moisture,
          "timestamp": formatted_time
       }
    except requests.RequestException as e:
@@ -54,8 +52,7 @@ def perform_sensor_data_averaging(url):
    #    "board_temperature": sensor_data["board_temperature"],
    #    "temperature": sensor_data["temperature"],
    #    "humidity": sensor_data["humidity"],
-   #    "pressure": sensor_data["pressure"],
-   #    "soil_moisture": sensor_data["soil_moisture"]
+   #    "pressure": sensor_data["pressure"]
    # }
    # Instead, use current time as timestamp (microcontroler time may be off)
    timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
@@ -64,7 +61,6 @@ def perform_sensor_data_averaging(url):
       "temperature": 0.,
       "humidity": 0.,
       "pressure": 0.,
-      "soil_moisture": 0.
    }
 
    # Collect data another 5 times with 10 second intervals
@@ -79,7 +75,6 @@ def perform_sensor_data_averaging(url):
       averaged_data["temperature"] += new_data["temperature"]
       averaged_data["humidity"] += new_data["humidity"]
       averaged_data["pressure"] += new_data["pressure"]
-      averaged_data["soil_moisture"] += new_data["soil_moisture"]
       div += 1
       time.sleep(10)
 

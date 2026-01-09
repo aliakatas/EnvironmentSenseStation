@@ -3,7 +3,6 @@ Environmental parameters sensors driven by a Raspberry Pico 2 W.
 
 ## Features
 - Measure ambient temperature, pressure, and humidity.
-- Measure soil moisture.
 - Measure board temperature.
 - Serve data over LAN using the onboard WiFi.
 - Additional system to automate and drive the data collection and storage to a database.
@@ -11,7 +10,6 @@ Environmental parameters sensors driven by a Raspberry Pico 2 W.
 ## Hardware
 - Raspberry Pi Pico 2 WH from [The Pi Hut](https://thepihut.com/products/raspberry-pi-pico-2-w?variant=54063378760065). Product [specs](https://datasheets.raspberrypi.com/picow/pico-2-w-datasheet.pdf).
 - BME280 sensor from [The Pi Hut](https://thepihut.com/products/bme280-environmental-sensor). Product [specs](https://www.waveshare.com/wiki/BME280_Environmental_Sensor).
-- Capacitive soil moisture sensor (v2.0) from [The Pi Hut](https://thepihut.com/products/capacitive-soil-moisture-sensor).
 - Breadboard
 - Jumper cables
 - Power supply (for independent operation)
@@ -48,24 +46,6 @@ We can use the following pin locations:
 - #38 for GND
 - #36 for VCC
 
-Similarly, for the soil moisture sensor which has 3 pins, the pins used are the following:
-- #31 for ADC
-- #38 for GND
-- #36 for VCC
-
-### Calibrate soil moisture sensor
-As this is an analogue sensor, you need to get some data to calibrate values for normal operation.
-Using the [soil_sensor_test](./src/soil_sensor_test.py) script, you can collect data for the sensor in dry and fully wet conditions.
-The test can be run in open air or by sticking the sensor in a pot.
-
-In open air, the sensor reads:
-- dry: 16%
-- wet: 67%
-
-In soil, the readings are below:
-- dry: 19-20%
-- wet: TBC
-
 ## Operation
 Before starting, make sure to install the latest firmware for the controller using the [official site](https://www.raspberrypi.com/documentation/microcontrollers/pico-series.html).
 Then, transfer the contents of the [src](./src/) folder to the Pico and test with Thonny to confirm there are no surprises.
@@ -94,10 +74,6 @@ The response is in json format as follows:
    "pressure": {
       "value": <pressure>,
       "unit": "hPa"
-   },
-   "soil_moisture": {
-      "value": <moisture>,
-      "unit": "%"
    },
    "status": "ok"
 }
