@@ -4,6 +4,86 @@ from typing import Dict
 import psycopg2
 
 
+def create_table_if_not_exists(
+   host: str,
+   database: str,
+   user: str,
+   password: str,
+   table_name: str,
+   port: int = 5432
+) -> bool:
+   """
+   Create a table in PostgreSQL database if it does not exist.
+   
+   Args:
+      host: Database host address
+      database: Database name
+      user: Username for database connection
+      password: Password for database connection
+      table_name: The name of the table to create
+      port: Database port (default: 5432)
+      
+   Returns:
+      bool: True if successful, False otherwise
+   """
+   
+   connection = None
+   cursor = None
+   
+   try:
+      # Establish connection
+      connection = psycopg2.connect(
+         host=host,
+         database=database,
+         user=user,
+         password=password,
+         port=port
+      )
+      
+      cursor = connection.cursor()
+      
+      # Create table if it does not exist
+      create_table_query = f"""
+      CREATE TABLE IF NOT EXISTS {table_name} (
+         id SERIAL PRIMARY KEY,
+         date_time TIMESTAMP NOT NULL,
+         temperature FLOAT,
+         humidity FLOAT,
+         pressure FLOAT,
+         board_temperature FLOAT,
+         comment TEXT,
+         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+      );
+      """
+      
+      cursor.execute(create_table_query)
+      
+      # Commit the transaction
+      connection.commit()
+      
+      print(f"Table '{table_name}' is ready (created or already exists).")
+      return True
+      
+   except psycopg2.Error as e:
+      print(f"Database error: {e}")
+      if connection:
+         connection.rollback()
+      return False
+   
+   except Exception as e:
+      print(f"Unexpected error: {e}")
+      if connection:
+         connection.rollback()
+      return False
+   
+   finally:
+      # Clean up connections
+      if cursor:
+         cursor.close()
+      if connection:
+         connection.close()
+
+
 def write_data_to_postgres(
    host: str,
    database: str,
