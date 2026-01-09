@@ -1,0 +1,23 @@
+[Unit]
+Description=Environment Sense Station collection data service
+Documentation=man:podman-compose(1)
+Wants=network-online.target
+After=network-online.target
+RequiresMountsFor=%t/containers
+
+[Service]
+Type=oneshot
+RemainAfterExit=true
+Environment=PODMAN_SYSTEMD_UNIT=%n
+EnvironmentFile=-%h/homelab/EnvironmentSenseStation/.env
+WorkingDirectory=%h/homelab/EnvironmentSenseStation
+ExecStartPre=/usr/bin/podman-compose pull
+ExecStart=/usr/bin/podman-compose up -d
+ExecStop=/usr/bin/podman-compose down
+ExecReload=/usr/bin/podman-compose up -d
+TimeoutStartSec=0
+Restart=on-failure
+RestartSec=30
+
+[Install]
+WantedBy=default.target
