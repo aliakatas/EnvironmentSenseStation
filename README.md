@@ -84,10 +84,11 @@ You may still contact the server through "controller-IP". However, a simple webp
 ## Data collection
 The system that manages the data collection and storage can be found in the [server](./server/) folder.
 The process is driven by the [main.py](./server/main.py) script and the [requirements.txt](./server/requirements.txt) file is used to create the virtual environment.
-Before launching, you will need a "secrets.py" file with the following info:
+Before launching, you will need a `secrets.py` file with the following info:
 ```python
-URL=     # the url to request data from
-HOST=    # the name or IP of the host of the database
+# secrets.py
+URL=        # the url to request data from
+HOST=       # the name or IP of the host of the database
 DATABASE=   # the name of the database
 DBUSER=     # the user name for the database
 DBUSERPASS= # the user's password for the database
@@ -95,6 +96,7 @@ TABLENAME=  # the name of the database table
 PORT=       # the port the database is listening to
 ```
 
+### Automation
 The automation can be achieved through the [sensing-wrapper.sh](./server/sensing-wrapper.sh) which assumes that the virtual environment is created in the same directory (same level) where the [server](./server/) folder is.
 Make sure that the script is executable:
 ```bash
@@ -104,6 +106,25 @@ chmod +x server/sensing-wrapper.sh
 The bash script can be added to crontab to run periodically.
 To do so, open `crontab` with `crontab -e` and add something like: "*/10 * * * * $PROJECT_DIR/server/sensing-wrapper.sh >> ~/cron.log 2>&1" to run every 10 minutes and keep some logs along the way.
 
+### Collection service as a container
+The same effect can be achieved by building and running the collection service in a container.
+
+To build it, run the following:
+```bash
+podman-compose build
+```
+
+To execute for testing, run the following:
+```bash
+podman-compose up -d
+```
+
+For longer term, run the following:
+```bash
+ln ./environment-sense-station.service ~/.config/systemd/user/environment-sense-station.service
+systemctl --user daemon-reload 
+systemctl --user enable --now environment-sense-station.service
+```
 ----
 
 ## Tips
