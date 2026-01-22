@@ -61,7 +61,7 @@ def run_server(sock, wdt=None):
                     pass
             
             # Run garbage collection to free memory
-            print("Allocated memory: {} \nFree memory: {}", gc.mem_alloc(), gc.mem_free())
+            print("\nAllocated memory: {} KB\nFree memory: {} KB".format(gc.mem_alloc() / 1024, gc.mem_free() / 1024))
             gc.collect()
 
 
@@ -70,12 +70,18 @@ if __name__ == "__main__":
     wdt = WDT(timeout=8000)
 
     try:
+
+        wdt.feed()
+
         # Connect to WiFi first
         wificonnector = WiFiConnector()
+
+        wdt.feed()
 
         if wificonnector.connected:
             # Small delay to ensure connection is stable
             time.sleep(2)
+            wdt.feed()
 
         sock = wificonnector.open_socket()
         sock.settimeout(2.0)
@@ -91,4 +97,5 @@ if __name__ == "__main__":
         import machine
         time.sleep(10)
         machine.reset()
+        # print("Restarting machine...")
 
