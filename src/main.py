@@ -30,11 +30,17 @@ def run_server(sock, wdt=None):
             client.settimeout(5.0)  # Timeout for client operations
             print('Client connected from', remote_address)
 
+            if wdt:
+                wdt.feed()
+
             request = client.recv(1024).decode('utf-8')
             request = str(request)
             # print('Request:', request.split('\n')[0])  # Print first line
         
-            response = handle_request(request, bme, board_temp)
+            response = handle_request(request, bme, board_temp, wdt=wdt)
+
+            if wdt:
+                wdt.feed()
         
             client.send(response.encode('utf-8'))
             client.close()
@@ -53,8 +59,8 @@ def run_server(sock, wdt=None):
                     pass
 
 if __name__ == "__main__":
-    # Initialize watchdog (120 seconds timeout)
-    wdt = WDT(timeout=120000)
+    # Initialize watchdog (8 seconds timeout)
+    wdt = WDT(timeout=8000)
 
     try:
         # Connect to WiFi first
