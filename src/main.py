@@ -1,10 +1,11 @@
 # Import libraries
 from wifi_connector import WiFiConnector
-from board_temp_sensor import BoardTempSensor, celsius_to_farenheit
+from board_temp_sensor import BoardTempSensor
 from http_stuff import handle_request
 from machine import Pin, I2C, WDT
 from bme280 import BME280
 import time
+import gc
 
 # Set up the sensors
 # This is the on-board temperature sensor
@@ -15,6 +16,7 @@ i2c = I2C(0, sda=Pin(0), scl=Pin(1), freq=400000)
 
 # Initialize the BME280 sensor
 bme = BME280(i2c=i2c, address=0x77)   # by default, the address should have been 0x76, however, my sensor is using the alternate
+
 
 def run_server(sock, wdt=None):
     """Run the HTTP server to serve sensor data"""
@@ -57,6 +59,11 @@ def run_server(sock, wdt=None):
                     client.close()
                 except:
                     pass
+            
+            # Run garbage collection to free memory
+            print("Allocated memory: {} \nFree memory: {}", gc.mem_alloc(), gc.mem_free())
+            gc.collect()
+
 
 if __name__ == "__main__":
     # Initialize watchdog (8 seconds timeout)
