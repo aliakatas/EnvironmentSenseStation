@@ -134,3 +134,8 @@ If after wiring the sensor the script fails mentioning it can't find the address
 ### Discover local IP address of controller
 After the LED on the Pico turns on steady, go to your router's admin page and check for the connected devices - there should be an entry for "Pico2W".
 
+### Debugging
+Due to the presence of the watchdog (`wdt`) and the machine reset instruction in `main.py` when an exception is caught, it is best to perform the two actions below before starting the debugging:
+- Rename main.py to something else (e.g. main_f.py). This will help the Pico recover into a REPL rather than start the loop of main.py again and potentially fall into an infinite loop without you being able to access it. The fallback in this case is to use the "flash nuke" file from [here](https://www.raspberrypi.com/documentation/microcontrollers/pico-series.html#resetting-flash-memory), then add a fresh firmware from [here](https://micropython.org/download/RPI_PICO2_W/).
+- Additionally, comment line 99 and uncomment line 100 in `main.py`.
+

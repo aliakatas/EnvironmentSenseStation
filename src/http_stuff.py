@@ -46,13 +46,16 @@ def create_http_response(data):
     return response
 
 
-def handle_request(request, bme_sensor, board_sensor):
+def handle_request(request, bme_sensor, board_sensor, wdt=None):
     """Parse request and determine response"""
     lines = request.split('\n')
     if len(lines) > 0:
         method_line = lines[0]
         if 'GET /sensors' in method_line:
             sensor_data = read_sensors(bme_sensor, board_sensor)
+
+            if wdt:
+                wdt.feed()
             return create_http_response(sensor_data)
         elif 'GET /' in method_line:
             # Simple index page
@@ -63,6 +66,9 @@ def handle_request(request, bme_sensor, board_sensor):
                 <h1>Pico 2 W Sensor Server</h1>
                 <p><a href="/sensors">Get Sensor Data (JSON)</a></p>
                 </body></html>"""
+            
+            if wdt:
+                wdt.feed()
             return html
     
     # 404 response
