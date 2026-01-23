@@ -66,6 +66,16 @@ def run_server(sock, wdt=None):
 
 
 if __name__ == "__main__":
+    
+    # Check for Ctrl+C to enter REPL
+    print("Starting... Press Ctrl+C within 2 seconds to enter REPL")
+    try:
+        for _ in range(20):
+            time.sleep(0.1)
+    except KeyboardInterrupt:
+        print("Entering REPL")
+        raise
+    
     # Initialize watchdog (8 seconds timeout)
     wdt = WDT(timeout=8000)
 
