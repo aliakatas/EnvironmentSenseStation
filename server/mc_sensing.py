@@ -36,6 +36,7 @@ def query_environmental_sensors(url):
       }
    except requests.RequestException as e:
       print(f"Error querying sensors: {e}")
+      return {}
 
 
 def perform_sensor_data_averaging(url):

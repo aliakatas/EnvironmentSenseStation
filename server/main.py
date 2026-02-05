@@ -13,6 +13,9 @@ if __name__ == "__main__":
    now = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
    try:
       sample_data = perform_sensor_data_averaging(URL)
+
+      if sample_data is None:
+         raise RuntimeError("No valid data collected for averaging. Skipping database write.")
       
       # Write data to database
       success = write_data_to_postgres(
