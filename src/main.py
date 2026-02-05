@@ -29,7 +29,7 @@ def run_server(sock, wdt=None):
 
         try:
             client, remote_address = sock.accept()
-            client.settimeout(5.0)  # Timeout for client operations
+            client.settimeout(3.0)  # Timeout for client operations
             print('Client connected from', remote_address)
 
             if wdt:
@@ -40,12 +40,14 @@ def run_server(sock, wdt=None):
             # print('Request:', request.split('\n')[0])  # Print first line
         
             response = handle_request(request, bme, board_temp, wdt=wdt)
-
+            
             if wdt:
                 wdt.feed()
         
             client.send(response.encode('utf-8'))
+            print('Response sent to', remote_address)
             client.close()
+            print('Client connection closed')
 
         except OSError as e:
             if e.args[0] != 110:  # 110 is ETIMEDOUT, which is expected
@@ -60,17 +62,17 @@ def run_server(sock, wdt=None):
                 except:
                     pass
             
-            # Run garbage collection to free memory
-            print("\nAllocated memory: {} KB\nFree memory: {} KB".format(gc.mem_alloc() / 1024, gc.mem_free() / 1024))
-            gc.collect()
+            # # Run garbage collection to free memory
+            # print("\nAllocated memory: {} KB\nFree memory: {} KB".format(gc.mem_alloc() / 1024, gc.mem_free() / 1024))
+            # gc.collect()
 
 
 if __name__ == "__main__":
     
     # Check for Ctrl+C to enter REPL
-    print("Starting... Press Ctrl+C within 2 seconds to enter REPL")
+    print("Starting... Press Ctrl+C within 5 seconds to enter REPL")
     try:
-        for _ in range(20):
+        for _ in range(50):
             time.sleep(0.1)
     except KeyboardInterrupt:
         print("Entering REPL")
@@ -81,17 +83,20 @@ if __name__ == "__main__":
 
     try:
 
-        wdt.feed()
+        if wdt is not None:
+            wdt.feed()
 
         # Connect to WiFi first
         wificonnector = WiFiConnector()
 
-        wdt.feed()
+        if wdt is not None:
+            wdt.feed()
 
         if wificonnector.connected:
             # Small delay to ensure connection is stable
             time.sleep(2)
-            wdt.feed()
+            if wdt is not None:
+                wdt.feed()
 
         sock = wificonnector.open_socket()
         sock.settimeout(2.0)
