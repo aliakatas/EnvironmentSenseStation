@@ -1,4 +1,4 @@
-from secrets import URL, PORT, HOST, DATABASE, DBUSER, DBUSERPASS, TABLENAME
+from secrets import URL, URLPORT, HOST, DATABASE, DBUSER, DBUSERPASS, TABLENAME, PORT
 from mc_sensing import perform_sensor_data_averaging
 from write_to_database import write_data_to_postgres
 import sys
@@ -12,7 +12,7 @@ if __name__ == "__main__":
    
    now = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
    try:
-      sample_data = perform_sensor_data_averaging(URL, PORT)
+      sample_data = perform_sensor_data_averaging(URL, URLPORT)
 
       if sample_data is None:
          raise RuntimeError("No valid data collected for averaging. Skipping database write.")
