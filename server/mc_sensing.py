@@ -48,6 +48,8 @@ def query_environmental_sensors(url, port):
 
       # Format as "YYYY-MM-DD hh:mm:ss"
       formatted_time = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+
+      sock.close()
       
       return {
          "board_temperature": board_temperature,
