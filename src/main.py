@@ -1,11 +1,13 @@
 # Import libraries
 from wifi_connector import WiFiConnector
 from board_temp_sensor import BoardTempSensor
-from http_stuff import handle_request
-from machine import Pin, I2C, WDT
 from bme280 import BME280
-import time
+from machine import Pin, I2C, WDT
+import socket
 import gc
+import time
+import machine
+import network
 
 # Set up the sensors
 # This is the on-board temperature sensor
@@ -17,69 +19,91 @@ i2c = I2C(0, sda=Pin(0), scl=Pin(1), freq=400000)
 # Initialize the BME280 sensor
 bme = BME280(i2c=i2c, address=0x77)   # by default, the address should have been 0x76, however, my sensor is using the alternate
 
+# Fix the port for the socket 
+PORT = 5005
 
-def run_server(sock, wdt=None):
-    """Run the HTTP server to serve sensor data"""
+# Something to allow entering REPL mode if needed
+SAFE_MODE = False
+
+# This will effectively disable the watchdog during development, but will be enabled in production
+DEBUG = False
+
+def serve_udp(bme, board_temp, wdt=None):
+    wlan = network.WLAN(network.STA_IF)
+
+    sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+    sock.bind(("0.0.0.0", PORT))
+    sock.settimeout(1.0)
+
+    start_time = time.ticks_ms()
 
     while True:
-        # Feed watchdog if provided
         if wdt:
             wdt.feed()
-        client = None
+
+        if not wlan.isconnected():
+            print("WiFi lost — rebooting")
+            machine.reset()
 
         try:
-            client, remote_address = sock.accept()
-            client.settimeout(3.0)  # Timeout for client operations
-            print('Client connected from', remote_address)
+            try:
+                data, addr = sock.recvfrom(128)
+            except OSError as e:
+                print(e)
+                continue
 
-            if wdt:
-                wdt.feed()
+            if data != b"SENSORS":
+                continue
 
-            request = client.recv(1024).decode('utf-8')
-            request = str(request)
-            # print('Request:', request.split('\n')[0])  # Print first line
-        
-            response = handle_request(request, bme, board_temp, wdt=wdt)
-            
-            if wdt:
-                wdt.feed()
-        
-            client.send(response.encode('utf-8'))
-            print('Response sent to', remote_address)
-            client.close()
-            print('Client connection closed')
+            try:
+                temperature, pressure, humidity = bme.environmental_parameters()
+                uptime_s = time.ticks_diff(time.ticks_ms(), start_time) // 1000
 
-        except OSError as e:
-            if e.args[0] != 110:  # 110 is ETIMEDOUT, which is expected
-                print('Connection error:', e)
+                payload = (
+                    f"TS={uptime_s},"
+                    f"BT={board_temp.temperatureC():.2f},"
+                    f"T={temperature:.2f},"
+                    f"H={humidity:.2f},"
+                    f"P={pressure:.2f},"
+                    f"S=ok"
+                )
+
+            except Exception as e:
+                payload = f"S=err,E={type(e).__name__}"
+
+            payload = "V=1," + payload
+            sock.sendto(payload.encode(), addr)
+
         except Exception as e:
-            print('Unexpected error:', e)
-        finally:
-            # Always close client if it was created
-            if client:
-                try:
-                    client.close()
-                except:
-                    pass
-            
-            # # Run garbage collection to free memory
-            # print("\nAllocated memory: {} KB\nFree memory: {} KB".format(gc.mem_alloc() / 1024, gc.mem_free() / 1024))
-            # gc.collect()
+            print("UDP error:", e)
 
+        finally:
+            gc.collect()
+            # if time.ticks_diff(time.ticks_ms(), start_time) > 86_400_000:
+            #     print("Daily reboot")
+            if time.ticks_diff(time.ticks_ms(), start_time) > 43_200_000:
+                print("Half-day reboot")
+                machine.reset()
 
 if __name__ == "__main__":
     
     # Check for Ctrl+C to enter REPL
-    print("Starting... Press Ctrl+C within 5 seconds to enter REPL")
+    print("Starting... Press Ctrl+C within 10 seconds to enter REPL")
+
     try:
-        for _ in range(50):
+        for _ in range(100):   # 10 seconds
             time.sleep(0.1)
     except KeyboardInterrupt:
-        print("Entering REPL")
-        raise
+        print("REPL mode")
+        SAFE_MODE = True
+
+    if SAFE_MODE:
+        print("Server NOT started")
+        while True:
+            time.sleep(1)
     
     # Initialize watchdog (8 seconds timeout)
-    wdt = WDT(timeout=8000)
+    wdt = None if DEBUG else WDT(timeout=8000)
 
     try:
 
@@ -98,19 +122,17 @@ if __name__ == "__main__":
             if wdt is not None:
                 wdt.feed()
 
-        sock = wificonnector.open_socket()
-        sock.settimeout(2.0)
-        
-        # Start the server
+        # Run the server to serve sensor data
         try:
-            run_server(sock=sock, wdt=wdt)
+            serve_udp(bme, board_temp, wdt=wdt)
         except Exception as e:
             print(f"Server error: {e}")
+            raise e
     except Exception as e:
         print(f"Fatal error: {e}")
+        
         # restart after delay
-        import machine
         time.sleep(10)
         machine.reset()
-        # print("Restarting machine...")
+        
 

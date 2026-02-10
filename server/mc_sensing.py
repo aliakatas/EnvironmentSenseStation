@@ -1,31 +1,55 @@
-import requests
+# import requests
+import socket
 from datetime import datetime, timedelta
 import time
 
-def query_environmental_sensors(url):
-   try:
-      response = requests.get(url)
-      response.raise_for_status()
 
-      data = response.json()
+def parse_payload(payload):
+    fields = dict(item.split("=") for item in payload.split(","))
+
+    if fields["S"] != "ok":
+      raise RuntimeError(fields.get("E", "unknown"))
+
+    return {
+        "board_temperature": {
+            "value": float(fields["BT"]),
+            "unit": "C"
+        },
+        "temperature": {
+            "value": float(fields["T"]),
+            "unit": "C"
+        },
+        "humidity": {
+            "value": float(fields["H"]),
+            "unit": "%"
+        },
+        "pressure": {
+            "value": float(fields["P"]),
+            "unit": "hPa"
+        },
+        "status": fields["S"]
+    }
+
+
+def query_environmental_sensors(url, port):
+   try:
+      sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+      sock.settimeout(2)
+
+      sock.sendto(b"SENSORS", (url, port))
+      rdata, _ = sock.recvfrom(256)
+
+      data = parse_payload(rdata.decode())
 
       board_temperature = data.get("board_temperature").get("value")
       temperature = data.get("temperature").get("value")
       humidity = data.get("humidity").get("value")
       pressure = data.get("pressure").get("value")
 
-      timestamp = data.get("timestamp").get("value")
-      reference_time = data.get("timestamp").get("reference")  # e.g., [2025, 9, 6, 0, 0, 0]
-
-      # Convert reference_time list to datetime object
-      ref_dt = datetime(
-         year=reference_time[0], month=reference_time[1], day=reference_time[2],
-         hour=reference_time[3], minute=reference_time[4], second=reference_time[5],
-         tzinfo=None)
-      # Add timestamp seconds
-      actual_dt = ref_dt + timedelta(seconds=timestamp)
       # Format as "YYYY-MM-DD hh:mm:ss"
-      formatted_time = actual_dt.strftime("%Y-%m-%d %H:%M:%S")
+      formatted_time = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+
+      sock.close()
       
       return {
          "board_temperature": board_temperature,
@@ -34,16 +58,16 @@ def query_environmental_sensors(url):
          "pressure": pressure,
          "timestamp": formatted_time
       }
-   except requests.RequestException as e:
+   except Exception as e:
       print(f"Error querying sensors: {e}")
       return {}
 
 
-def perform_sensor_data_averaging(url):
+def perform_sensor_data_averaging(url, port):
    print("Starting sensor data averaging...")
 
    # prime the sensors... and discard the first take
-   sensor_data = query_environmental_sensors(url)
+   sensor_data = query_environmental_sensors(url, port)
    if not sensor_data:
       return None
    
@@ -69,7 +93,7 @@ def perform_sensor_data_averaging(url):
    div = 0
    for _ in range(5):
       print(f"Collecting more data for averaging... {_+1}/5")
-      new_data = query_environmental_sensors(url)
+      new_data = query_environmental_sensors(url, port)
       if not new_data:
          continue
       averaged_data["board_temperature"] += new_data["board_temperature"]
