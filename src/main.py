@@ -33,11 +33,7 @@ def serve_udp(bme, board_temp, wdt=None):
 
     sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
     sock.bind(("0.0.0.0", PORT))
-    
-    if DEBUG:
-        sock.settimeout(1.0)
-    else:
-        sock.setblocking(True)
+    sock.settimeout(1.0)
 
     start_time = time.ticks_ms()
 
@@ -50,13 +46,11 @@ def serve_udp(bme, board_temp, wdt=None):
             machine.reset()
 
         try:
-            if DEBUG:
-                try:
-                    data, addr = sock.recvfrom(128)
-                except OSError:
-                    continue
-            else:
+            try:
                 data, addr = sock.recvfrom(128)
+            except OSError as e:
+                print(e)
+                continue
 
             if data != b"SENSORS":
                 continue
