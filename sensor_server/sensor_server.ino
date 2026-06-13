@@ -8,22 +8,35 @@
 
 #include <WiFi.h>
 #include <ArduinoJson.h>
+#include <Wire.h>
+#include <SPI.h>
+#include <Adafruit_Sensor.h>
+#include <Adafruit_BME280.h>
+
+//This Macro definition decide whether you use I2C or SPI
+//When USEIIC is 1 means use I2C interface, When it is 0,use SPI interface
+#define USEIIC 1
+
+#if(USEIIC)
+	Adafruit_BME280 bme;
+#else
+	#define SPI_SCK 13
+	#define SPI_MISO 12
+	#define SPI_MOSI 11
+	#define SPI_CS 10
+	Adafruit_BME280 bme(SPI_CS, SPI_MOSI, SPI_MISO, SPI_SCK);
+#endif
 
 #define port 80
 const char *ssid_Router     = ROUTER_SSID;
 const char *password_Router = SSID_PASSWORD;
 WiFiServer  server(port);
 
-// --- Your data fields ---
-String  field_name    = "ESP32-Device";
-String  field_status  = "online";
-float   field_value   = 42.7;
-
-static int clicks = 0;
-
 void setup()
 {
     Serial.begin(115200);
+
+    // Start with WiFi
     Serial.printf("\nConnecting to ");
     Serial.println(ssid_Router);
     WiFi.disconnect();
@@ -40,18 +53,41 @@ void setup()
     Serial.printf("IP port: %d\n",port);			
     server.begin(port);								
     WiFi.setAutoReconnect(true);
+
+    // Go on with the sensor
+    bool rslt;
+    rslt = bme.begin();  
+    if (!rslt) {
+        Serial.println("Init Fail,Please Check your address or the wire you connected!!!");
+        while (1);
+    }
+	
+    Serial.println("Init Success");
+    Serial.println("Temperature           Pressure             Humidity");
 }
 
 String buildJson()
 {
-    StaticJsonDocument<256> doc;
-    doc["name"]   = field_name;
-    doc["status"] = field_status;
-    doc["value"]  = field_value;
-    doc["clicks"] = clicks++;
+    JsonDocument temperature;
+    temperature["value"] = bme.readTemperature();
+    temperature["unit"] = "C";
+
+    JsonDocument humidity;
+    humidity["value"] = bme.readHumidity();
+    humidity["unit"] = "%";
+
+    JsonDocument pressure;
+    pressure["value"] = bme.readPressure()/100.0F;
+    pressure["unit"] = "hPa";
+
+    JsonDocument response;
+    response["temperature"] = temperature;
+    response["humidity"] = humidity;
+    response["pressure"] = pressure;
+    response["status"] = "ok";
 
     String output;
-    serializeJson(doc, output);
+    serializeJson(response, output);
     return output;
 }
 
