@@ -289,3 +289,4 @@ nbproject
 
 # My secrets
 secrets.py
+secrets.h
