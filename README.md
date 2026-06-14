@@ -1,5 +1,5 @@
 # EnvironmentSenseStation
-Environmental parameters sensors driven by a Raspberry Pico 2 W.
+Monitor environmental parameters using sensors driven by an ESP32.
 
 ## Features
 - Measure ambient temperature, pressure, and humidity.
@@ -8,21 +8,15 @@ Environmental parameters sensors driven by a Raspberry Pico 2 W.
 - Additional system to automate and drive the data collection and storage to a database.
 
 ## Hardware
-- Raspberry Pi Pico 2 WH from [The Pi Hut](https://thepihut.com/products/raspberry-pi-pico-2-w?variant=54063378760065). Product [specs](https://datasheets.raspberrypi.com/picow/pico-2-w-datasheet.pdf).
+- ESP32 board like [fnk0060](https://store.freenove.com/products/fnk0060) or [fnk0090](https://store.freenove.com/products/fnk0090).
 - BME280 sensor from [The Pi Hut](https://thepihut.com/products/bme280-environmental-sensor). Product [specs](https://www.waveshare.com/wiki/BME280_Environmental_Sensor).
-- Breadboard
-- Jumper cables
+- Breakout board [fnk0091](https://store.freenove.com/products/fnk0091).
 - Power supply (for independent operation)
 
 ### Dependencies
-To be able to talk to the sensor, we need the following library:
-- [Micropython BME280](https://pypi.org/project/micropython-bme280/)
-
-The library script [bme280.py](./src/bme280.py) has been modified by adding the following functions/properties to the class to make value reading easier:
-- environmental_parameters: function, returns the parameters below as a tuple
-- temperature: property (C)
-- humidity: property (%)
-- pressure: property (hPa)
+- Arduino IDE
+- Install ArduinoJSON: see [image](./assets/arduinojson.jpeg) for help.
+- To be able to talk to the sensor, we need the source code from the example code here:  library: [Waveshare BME280](https://www.waveshare.com/wiki/BME280_Environmental_Sensor#Code).
 
 ## Connect the sensors
 The BME280 sensor from Waveshare has 6 pins and can be used with I2C or SPI. 
@@ -37,28 +31,23 @@ This project is using the I2C implementation.
 | ADDR | NC/GND | Address chip select (default is high): When the voltage is high, the address is 0 x 77. When the voltage is low, the address is: 0 x 76 |
 | CS | NC | Used for SPI mode |
 
-Based on the image below:
-![](https://docs.micropython.org/en/latest/_images/pico_pinout.png)
+Using the information from [this source](https://docs.freenove.com/projects/fnk0091/en/latest/fnk0091/codes/tutorial/0_ESP32_ESP32S3%28Important%29.html#id2), the circuit looks like this: 
 
-We can use the following pin locations:
-- #1 for SDA
-- #2 for SCL
-- #38 for GND
-- #36 for VCC
+![](./assets/20260614_124551.jpg)
+
+The pins used are the following:
+- #21 for SDA
+- #22 for SCL
+- GND for GND
+- 3V3 for VCC
 
 ## Operation
-Before starting, make sure to install the latest firmware for the controller using the [official site](https://www.raspberrypi.com/documentation/microcontrollers/pico-series.html).
-Then, transfer the contents of the [src](./src/) folder to the Pico and test with Thonny to confirm there are no surprises.
+Build and upload the sketch in [sensor_server](./sensor_server/sensor_server.ino) to the controller.
 
-Once the server is running on the controller, clients can request data by sending requests to "controller-IP/sensors".
+Once the server is up and running on the controller, clients can request data by sending GET requests to the IP of the controller.
 The response is in json format as follows:
 ```json
 {
-   "timestamp": {
-      "value": <seconds since reference>,
-      "unit": "seconds",
-      "reference": <array in the form [YYYY, MM, DD, hh, mm, ss]>
-   },
    "board_temperature": {
       "value": <temperature>,
       "unit": "C"
@@ -78,8 +67,6 @@ The response is in json format as follows:
    "status": "ok"
 }
 ```
-
-You may still contact the server through "controller-IP". However, a simple webpage will appear with a link directing to the sensors' endpoint.
 
 ## Data collection
 The system that manages the data collection and storage can be found in the [server](./server/) folder.
@@ -128,14 +115,6 @@ systemctl --user enable --now environment-sense-station.service
 ----
 
 ## Tips
-### Discover address of sensor
-If after wiring the sensor the script fails mentioning it can't find the address, it is worth running the [scan script](./src/scan_address.py).
-
-### Discover local IP address of controller
-After the LED on the Pico turns on steady, go to your router's admin page and check for the connected devices - there should be an entry for "Pico2W".
-
-### Debugging
-Due to the presence of the watchdog (`wdt`) and the machine reset instruction in `main.py` when an exception is caught, it is best to perform the two actions below before starting the debugging:
-- Rename main.py to something else (e.g. main_f.py). This will help the Pico recover into a REPL rather than start the loop of main.py again and potentially fall into an infinite loop without you being able to access it. The fallback in this case is to use the "flash nuke" file from [here](https://www.raspberrypi.com/documentation/microcontrollers/pico-series.html#resetting-flash-memory), then add a fresh firmware from [here](https://micropython.org/download/RPI_PICO2_W/).
-- Additionally, comment line 99 and uncomment line 100 in `main.py`.
+### Uploading sketches
+Occasionally, the upload of a sketch might fail. Check the baud rate before attempting the upload. What usually works is 115200 and not the default 921600.
 
