@@ -27,10 +27,19 @@
 	Adafruit_BME280 bme(SPI_CS, SPI_MOSI, SPI_MISO, SPI_SCK);
 #endif
 
-#define port 80
+const int port = SERVER_PORT;
 const char *ssid_Router     = ROUTER_SSID;
 const char *password_Router = SSID_PASSWORD;
 WiFiServer  server(port);
+
+#ifdef __cplusplus
+extern "C" {
+#endif
+uint8_t temprature_sens_read();
+#ifdef __cplusplus
+}
+#endif
+uint8_t temprature_sens_read();
 
 void setup()
 {
@@ -68,6 +77,15 @@ void setup()
 
 String buildJson()
 {
+    // Read raw value
+    uint8_t board_temp_raw = temprature_sens_read();
+    // Convert to Celsius
+    float board_temp_celsius = (board_temp_raw - 32) / 1.8F;
+
+    JsonDocument board_temperature;
+    board_temperature["value"] = board_temp_celsius;
+    board_temperature["unit"] = "C";
+
     JsonDocument temperature;
     temperature["value"] = bme.readTemperature();
     temperature["unit"] = "C";
@@ -81,6 +99,7 @@ String buildJson()
     pressure["unit"] = "hPa";
 
     JsonDocument response;
+    response["board_temperature"] = board_temperature;
     response["temperature"] = temperature;
     response["humidity"] = humidity;
     response["pressure"] = pressure;
@@ -105,7 +124,7 @@ void handleClient(WiFiClient &client)
         if (line == "\r") break;   // blank line signals end of headers
     }
 
-    Serial.println("Request: " + requestLine);
+    // Serial.println("Request: " + requestLine);
 
     if (requestLine.startsWith("GET")) {
         String json = buildJson();
@@ -117,7 +136,7 @@ void handleClient(WiFiClient &client)
             "\r\n" +
             json;
         client.print(response);
-        Serial.println("Sent JSON: " + json);
+        // Serial.println("Sent JSON: " + json);
     } else {
         // Return 405 for anything that isn't a GET
         client.print(
@@ -132,7 +151,7 @@ void loop()
 {
   WiFiClient client = server.accept();
   if (client) {
-      Serial.println("Client connected.");
+    //   Serial.println("Client connected.");
       unsigned long timeout = millis() + 2000;   // 2 s to send headers
       while (client.connected() && !client.available()) {
           if (millis() > timeout) break;
@@ -140,6 +159,6 @@ void loop()
       }
       handleClient(client);
       client.stop();
-      Serial.println("Client disconnected.");
+    //   Serial.println("Client disconnected.");
   }
 }
