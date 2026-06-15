@@ -9,6 +9,10 @@ def query_environmental_sensors(url, port):
       resp.raise_for_status()
       data = resp.json()
 
+      if data.get("health", None) is not None:
+         if data.get("health").get("sensor", "not ok") in ["not ok", "degraded"]:
+            raise RuntimeError("Sensor degraded")
+      
       board_temperature = data.get("board_temperature").get("value")
       temperature = data.get("temperature").get("value")
       humidity = data.get("humidity").get("value")
