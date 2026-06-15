@@ -28,6 +28,14 @@ SAFE_MODE = False
 # This will effectively disable the watchdog during development, but will be enabled in production
 DEBUG = False
 
+# Outline the valid requests the server will respond to, and the expected response format. This is important for the client to know how to parse the data.
+# Request: "SENSORS"
+# Response: "V=1,TS=<uptime_seconds>,BT=<board_temp_C>,T=<temperature_C>,H=<humidity_percent>,P=<pressure_hPa>,S=<status_ok_or_err>,E=<error_message_if_any>"
+#
+# Request: "STATUS"
+# Response: "V=1,TS=<uptime_seconds>,MEM=<free_memory_bytes>,S=<status_ok_or_err>,E=<error_message_if_any>"
+valid_requests = [b"SENSORS", b"STATUS"]
+
 def serve_udp(bme, board_temp, wdt=None):
     wlan = network.WLAN(network.STA_IF)
 
