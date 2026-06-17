@@ -64,6 +64,25 @@ void readFile(fs::FS &fs, const char * path){
     }
 }
 
+String getFileContents(fs::FS &fs, const char * path){
+    Serial.printf("Reading file: %s\n", path);
+
+    File file = fs.open(path);
+    if(!file){
+        Serial.println("Failed to open file for reading");
+        return "";
+    }
+
+    Serial.print("Read from file: ");
+    String s = "";
+    Serial.print("Read from file: ");
+    while(file.available()){
+        s += file.read();
+    }
+
+    return s;
+}
+
 void writeFile(fs::FS &fs, const char * path, const char * message){
     Serial.printf("Writing file: %s\n", path);
 
