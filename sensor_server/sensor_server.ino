@@ -26,7 +26,7 @@
 
 #if(USEIIC)
 	Adafruit_BME280 bme;
-	const uint8_t BME280_I2C_ADDR = 0x76;   // change to 0x77 if that's your wiring
+	const uint8_t BME280_I2C_ADDR = 0x77;   // change to 0x76 if that's your wiring
 	const uint8_t BME280_CHIPID_REG = 0xD0; // datasheet-fixed register, always returns 0x60 when healthy
 	const uint8_t BME280_EXPECTED_CHIPID = 0x60;
 #else
