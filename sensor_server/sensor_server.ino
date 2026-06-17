@@ -4,21 +4,31 @@
                 Respond with sensor data.
   Author      : Aristotelis Liakatas
 **********************************************************************/
-#include "secrets.h"
-
-#include <WiFi.h>
-#include <ArduinoJson.h>
-#include <Wire.h>
-#include <SPI.h>
-#include <Adafruit_Sensor.h>
-#include <Adafruit_BME280.h>
 
 //This Macro definition decide whether you use I2C or SPI
 //When USEIIC is 1 means use I2C interface, When it is 0,use SPI interface
 #define USEIIC 1
 
+#include "secrets.h"
+#include "i2c_bus_recovery.h"
+
+#include <WiFi.h>
+#include <ArduinoJson.h>
+#include <Wire.h>
+
+#if(!USEIIC)
+#include <SPI.h>
+#endif 
+
+#include <Adafruit_Sensor.h>
+#include <Adafruit_BME280.h>
+
+
 #if(USEIIC)
 	Adafruit_BME280 bme;
+	const uint8_t BME280_I2C_ADDR = 0x76;   // change to 0x77 if that's your wiring
+	const uint8_t BME280_CHIPID_REG = 0xD0; // datasheet-fixed register, always returns 0x60 when healthy
+	const uint8_t BME280_EXPECTED_CHIPID = 0x60;
 #else
 	#define SPI_SCK 13
 	#define SPI_MISO 12
@@ -131,6 +141,94 @@ void monitorHealth()
     }
 }
 
+// --- Sensor health tracking -------------------------------------------------
+//
+// Rationale: Adafruit_BME280::readTemperature()/readHumidity()/readPressure()
+// only return NAN when the *corresponding oversampling field is set to
+// SAMPLING_NONE* in the ctrl_meas/ctrl_hum registers (i.e. that channel is
+// deliberately disabled). They do NOT return NAN when the I2C bus is wedged,
+// the sensor has crashed, or a read returns stale/garbage data — in those
+// cases you get a normal-looking float that is simply wrong. So NAN-checking
+// alone (and equally, range-checking against numbers that merely look
+// "implausible") cannot be the detection mechanism.
+//
+// Instead we use two independent, library-agnostic signals:
+//
+//   1. Chip ID register (0xD0) — this is a fixed, documented, read-only
+//      register that always returns 0x60 on a functioning BME280. If the
+//      I2C bus is wedged, addressed wrong, or the sensor has browned out,
+//      this read will return 0x00, 0xFF, or some other wrong value. This
+//      is a direct hardware-truth check, not an inference from output data.
+//
+//   2. Read staleness — if a wedged I2C transaction silently returns the
+//      previous buffer contents instead of failing, the chip ID check
+//      above can still pass (cached correctly) while the data registers
+//      are frozen. We catch this by comparing the latest reading against
+//      the previous N readings: bit-for-bit identical floats across
+//      several consecutive samples, on a sensor with no filtering enabled,
+//      is itself the anomaly signal — real sensor noise basically never
+//      produces exact repeats over multiple samples.
+//
+// Neither check relies on guessing what a "reasonable" temperature is.
+
+static float lastTemp = NAN, lastHum = NAN, lastPres = NAN;
+static uint8_t repeatCount = 0;
+const uint8_t STALE_REPEAT_THRESHOLD = 4; // consecutive identical reads before we call it stale
+
+bool chipIdIsHealthy()
+{
+#if(USEIIC)
+    Wire.beginTransmission(BME280_I2C_ADDR);
+    Wire.write(BME280_CHIPID_REG);
+    if (Wire.endTransmission(false) != 0) {
+        // NACK or bus error on the address/register phase — bus is unhappy
+        return false;
+    }
+    if (Wire.requestFrom(BME280_I2C_ADDR, (uint8_t)1) != 1) {
+        return false; // didn't even get a byte back
+    }
+    uint8_t chipId = Wire.read();
+    return chipId == BME280_EXPECTED_CHIPID;
+#else
+    // SPI chip-ID check would go through bme's own SPI device; for now,
+    // staleness detection (below) is the primary signal in SPI mode.
+    return true;
+#endif
+}
+
+bool readingIsStale(float temp, float hum, float pres)
+{
+    bool identicalToLast =
+        (temp == lastTemp) && (hum == lastHum) && (pres == lastPres);
+
+    if (identicalToLast) {
+        repeatCount++;
+    } else {
+        repeatCount = 0;
+    }
+
+    lastTemp = temp;
+    lastHum  = hum;
+    lastPres = pres;
+
+    return repeatCount >= STALE_REPEAT_THRESHOLD;
+}
+
+void recoverSensor()
+{
+    Serial.println("BME280 fault detected (bad chip ID and/or stale readings) - recovering...");
+    i2c_bus_recover();          // bit-bang SCL/SDA to free a wedged bus, then Wire.begin() again
+    bool ok = bme.begin(BME280_I2C_ADDR, &Wire);  // full re-init incl. re-reading calibration
+    if (!ok) {
+        Serial.println("Re-init failed - will retry on next request.");
+    } else {
+        Serial.println("Sensor re-initialised.");
+    }
+    repeatCount = 0;
+    lastTemp = lastHum = lastPres = NAN;
+    delay(100);
+}
+
 void setup()
 {
     Serial.begin(115200);
@@ -157,6 +255,29 @@ void setup()
 
 String buildJson()
 {
+    // Step 1: hardware-truth check, independent of any reading's value
+    if (!chipIdIsHealthy()) {
+        recoverSensor();
+    }
+
+    // Step 2: take the actual reading
+    float temp = bme.readTemperature();
+    float hum  = bme.readHumidity();
+    float pres = bme.readPressure() / 100.0F;
+
+    // Step 3: staleness check using this reading; if it trips, recover and
+    // re-read once so the client gets a fresh value rather than the one
+    // that triggered the recovery.
+    if (readingIsStale(temp, hum, pres)) {
+        recoverSensor();
+        temp = bme.readTemperature();
+        hum  = bme.readHumidity();
+        pres = bme.readPressure() / 100.0F;
+        // reset tracking with the fresh values so we don't immediately
+        // re-trigger on the next call
+        lastTemp = temp; lastHum = hum; lastPres = pres; repeatCount = 0;
+    }
+
     // Read raw value
     uint8_t board_temp_raw = temprature_sens_read();
     // Convert to Celsius
@@ -254,3 +375,4 @@ void loop()
     //   Serial.println("Client disconnected.");
   }
 }
+
