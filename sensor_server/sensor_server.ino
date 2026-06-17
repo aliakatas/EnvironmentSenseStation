@@ -12,6 +12,13 @@
 #include "secrets.h"
 #include "i2c_bus_recovery.h"
 
+#include "sd_read_write.h"
+#include "SD_MMC.h"
+
+#define SD_MMC_CMD 15 //Please do not modify it.
+#define SD_MMC_CLK 14 //Please do not modify it. 
+#define SD_MMC_D0  2  //Please do not modify it.
+
 #include <WiFi.h>
 #include <ArduinoJson.h>
 #include <Wire.h>
@@ -52,6 +59,8 @@ unsigned long lastSensorCheck = 0;
 unsigned long lastSensorRetry = 0;
 int sensorReinitFailures = 0;
 
+const char* LOG_FILE_ON_SD = "/run-log.log";
+
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -74,6 +83,7 @@ bool connectWifi()
 
     if (WiFi.status() != WL_CONNECTED) {
         Serial.println("\nWiFi reconnect failed.");
+        appendFile(SD_MMC, LOG_FILE_ON_SD, "WiFi reconnect failed\n");
         return false;
     }
 
@@ -94,6 +104,7 @@ bool initializeSensor()
 
     Serial.println("Init Success");
     Serial.println("Temperature           Pressure             Humidity");
+    appendFile(SD_MMC, LOG_FILE_ON_SD, "sensor initialisation: OK\n");
     return true;
 }
 
@@ -106,6 +117,36 @@ bool checkSensorHealth()
     return !(isnan(temperature) || isnan(humidity) || isnan(pressure));
 }
 
+void initializeSDCard()
+{
+    SD_MMC.setPins(SD_MMC_CLK, SD_MMC_CMD, SD_MMC_D0);
+    if (!SD_MMC.begin("/sdcard", true, true, SDMMC_FREQ_DEFAULT, 5)) {
+      Serial.println("Card Mount Failed");
+      return;
+    }
+    uint8_t cardType = SD_MMC.cardType();
+    if(cardType == CARD_NONE){
+        Serial.println("No SD_MMC card attached");
+        return;
+    }
+
+    Serial.print("SD_MMC Card Type: ");
+    if(cardType == CARD_MMC){
+        Serial.println("MMC");
+    } else if(cardType == CARD_SD){
+        Serial.println("SDSC");
+    } else if(cardType == CARD_SDHC){
+        Serial.println("SDHC");
+    } else {
+        Serial.println("UNKNOWN");
+    }
+
+    uint64_t cardSize = SD_MMC.cardSize() / (1024 * 1024);
+    Serial.printf("SD_MMC Card Size: %lluMB\n", cardSize);
+
+    writeFile(SD_MMC, LOG_FILE_ON_SD, "***********\n");
+}
+
 void monitorHealth()
 {
     unsigned long now = millis();
@@ -113,6 +154,7 @@ void monitorHealth()
     if (WiFi.status() != WL_CONNECTED && now - lastWifiCheck >= WIFI_CHECK_INTERVAL_MS) {
         lastWifiCheck = now;
         Serial.println("WiFi disconnected, attempting reconnect...");
+        appendFile(SD_MMC, LOG_FILE_ON_SD, "WiFi disconnected, attempting reconnect...\n");
         connectWifi();
     }
 
@@ -127,6 +169,7 @@ void monitorHealth()
         if (now - lastSensorRetry >= SENSOR_RETRY_INTERVAL_MS) {
             lastSensorRetry = now;
             Serial.println("BME280 health check failed, reinitializing...");
+            appendFile(SD_MMC, LOG_FILE_ON_SD, "BME280 health check failed, reinitializing...\n");
             if (initializeSensor()) {
                 sensorReinitFailures = 0;
                 return;
@@ -135,6 +178,7 @@ void monitorHealth()
             sensorReinitFailures++;
             if (sensorReinitFailures >= MAX_SENSOR_REINIT_FAILURES) {
                 Serial.println("BME280 reinit failed repeatedly, restarting...");
+                appendFile(SD_MMC, LOG_FILE_ON_SD, "BME280 reinit failed repeatedly, restarting...\n");
                 ESP.restart();
             }
         }
@@ -217,12 +261,18 @@ bool readingIsStale(float temp, float hum, float pres)
 void recoverSensor()
 {
     Serial.println("BME280 fault detected (bad chip ID and/or stale readings) - recovering...");
+    appendFile(SD_MMC, LOG_FILE_ON_SD, "fault detected (bad chip ID and/or stale readings) - recovering...\n");
+
     i2c_bus_recover();          // bit-bang SCL/SDA to free a wedged bus, then Wire.begin() again
     bool ok = bme.begin(BME280_I2C_ADDR, &Wire);  // full re-init incl. re-reading calibration
-    if (!ok) {
+    if (!ok) 
+    {
         Serial.println("Re-init failed - will retry on next request.");
-    } else {
+        appendFile(SD_MMC, LOG_FILE_ON_SD, "Re-init failed - will retry on next request.\n");
+    } else 
+    {
         Serial.println("Sensor re-initialised.");
+        appendFile(SD_MMC, LOG_FILE_ON_SD, "Sensor re-initialised.\n");
     }
     repeatCount = 0;
     lastTemp = lastHum = lastPres = NAN;
@@ -232,6 +282,9 @@ void recoverSensor()
 void setup()
 {
     Serial.begin(115200);
+
+    // Start with the card where the log goes!
+    initializeSDCard();
 
     // Start with WiFi
     Serial.printf("\nConnecting to ");
@@ -250,6 +303,7 @@ void setup()
     }
 
     Serial.println("BME280 init failed repeatedly, restarting...");
+    appendFile(SD_MMC, LOG_FILE_ON_SD, "BME280 init failed repeatedly, restarting...\n");
     ESP.restart();
 }
 
@@ -362,17 +416,17 @@ void loop()
 {
     monitorHealth();
 
-  WiFiClient client = server.accept();
-  if (client) {
-    //   Serial.println("Client connected.");
-      unsigned long timeout = millis() + 2000;   // 2 s to send headers
-      while (client.connected() && !client.available()) {
-          if (millis() > timeout) break;
-          delay(1);
-      }
-      handleClient(client);
-      client.stop();
-    //   Serial.println("Client disconnected.");
-  }
+    WiFiClient client = server.accept();
+    if (client) {
+        //   Serial.println("Client connected.");
+        unsigned long timeout = millis() + 2000;   // 2 s to send headers
+        while (client.connected() && !client.available()) {
+            if (millis() > timeout) break;
+            delay(1);
+        }
+        handleClient(client);
+        client.stop();
+        //   Serial.println("Client disconnected.");
+    }
 }
 
