@@ -144,7 +144,10 @@ void initializeSDCard()
     uint64_t cardSize = SD_MMC.cardSize() / (1024 * 1024);
     Serial.printf("SD_MMC Card Size: %lluMB\n", cardSize);
 
-    writeFile(SD_MMC, LOG_FILE_ON_SD, "***********\n");
+    // Best for preserving previous logs!
+    appendFile(SD_MMC, LOG_FILE_ON_SD, "***********\n");
+    // otherwise:
+    //writeFile(SD_MMC, LOG_FILE_ON_SD, "***********\n");
 }
 
 void monitorHealth()
@@ -378,10 +381,17 @@ String buildJson()
 void handleClient(WiFiClient &client)
 {
     String requestLine = "";
+    String requestPath = "/";
 
     // Read the first line of the HTTP request (e.g. "GET / HTTP/1.1")
     if (client.available())
         requestLine = client.readStringUntil('\n');
+
+    int firstSpace = requestLine.indexOf(' ');
+    int secondSpace = requestLine.indexOf(' ', firstSpace + 1);
+    if (firstSpace >= 0 && secondSpace > firstSpace) {
+        requestPath = requestLine.substring(firstSpace + 1, secondSpace);
+    }
 
     // Drain the remaining headers
     while (client.available()) {
@@ -392,6 +402,42 @@ void handleClient(WiFiClient &client)
     // Serial.println("Request: " + requestLine);
 
     if (requestLine.startsWith("GET")) {
+        if (requestPath == "/reset") {
+            client.print(
+                "HTTP/1.1 200 OK\r\n"
+                "Content-Type: application/json\r\n"
+                "Connection: close\r\n"
+                "\r\n"
+                "{\"status\":\"resetting\"}"
+            );
+            client.flush();
+            appendFile(SD_MMC, LOG_FILE_ON_SD, "Device restart requested...\n");
+            delay(100);
+            ESP.restart();
+            return;
+        }
+
+        if (requestPath == "/log") {
+            String logContents = getFileContents(SD_MMC, LOG_FILE_ON_SD);
+            JsonDocument loglog;
+            loglog["text"] = logContents;
+            loglog["size"] = SD_MMC.usedBytes();
+            loglog["capacity"] = SD_MMC.totalBytes();
+
+            String output;
+            serializeJson(loglog, output);
+
+            String response =
+                "HTTP/1.1 200 OK\r\n"
+                "Content-Type: application/json\r\n"
+                "Connection: close\r\n"
+                "Content-Length: " + String(output.length()) + "\r\n"
+                "\r\n" +
+                output;
+            client.print(response);
+
+        }
+
         String json = buildJson();
         String response =
             "HTTP/1.1 200 OK\r\n"
