@@ -69,7 +69,7 @@ The pins used are the following:
 - #0 for MISO
 - #33 for CS
 
-**Note:** Make sure to edit the definition of the `USEIIC` macro in [](./sensor_server/sensor_server.ino) accordingly.
+**Note:** Make sure to edit the definition of the `USEIIC` macro in [sensor_server.ino](./sensor_server/sensor_server.ino) accordingly.
 
 ## Operation
 Build and upload the sketch in [sensor_server](./sensor_server/sensor_server.ino) to the controller.
