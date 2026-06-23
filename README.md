@@ -18,9 +18,11 @@ Monitor environmental parameters using sensors driven by an ESP32.
 - Install ArduinoJSON: see [image](./assets/arduinojson.jpeg) for help.
 - To be able to talk to the sensor, we need the source code from the example code here:  library: [Waveshare BME280](https://www.waveshare.com/wiki/BME280_Environmental_Sensor#Code).
 
-## Connect the sensors
+## Connect the sensor
 The BME280 sensor from Waveshare has 6 pins and can be used with I2C or SPI. 
-This project is using the I2C implementation.
+
+### I2C
+When using the I2C implementation, follow the wiring below:
 
 | Function Pin | Controller Slot | Description |
 | -------- | ------- | ------- |
@@ -36,10 +38,38 @@ Using the information from [this source](https://docs.freenove.com/projects/fnk0
 ![](./assets/20260614_124551.jpg)
 
 The pins used are the following:
+- 3V3 for VCC
+- GND for GND
 - #21 for SDA
 - #22 for SCL
-- GND for GND
+
+**Note:** Make sure to edit the definition of the `USEIIC` macro in [](./sensor_server/sensor_server.ino) accordingly.
+
+### SPI
+When using the SPI implementation, follow the wiring below:
+
+| Function Pin | Controller Slot | Description |
+| -------- | ------- | ------- |
+| VCC | 3.3V / 5V | Power input |
+| GND | GND | Ground |
+| MOSI | MOSI | SPI data input |
+| SCK | SCK | SPI clock input |
+| MISO | MISO | SPI data output |
+| CS | NC | SPI Chip select, active when voltage is low |
+
+Using the information from [this source](https://docs.freenove.com/projects/fnk0091/en/latest/fnk0091/codes/tutorial/0_ESP32_ESP32S3%28Important%29.html#id2), the circuit looks like this: 
+
+![](./assets/20260623_203143.jpg)
+
+The pins used are the following:
 - 3V3 for VCC
+- GND for GND
+- #32 for MOSI
+- #13 for SCK
+- #0 for MISO
+- #33 for CS
+
+**Note:** Make sure to edit the definition of the `USEIIC` macro in [](./sensor_server/sensor_server.ino) accordingly.
 
 ## Operation
 Build and upload the sketch in [sensor_server](./sensor_server/sensor_server.ino) to the controller.
