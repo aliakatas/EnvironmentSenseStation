@@ -7,7 +7,7 @@
 
 //This Macro definition decide whether you use I2C or SPI
 //When USEIIC is 1 means use I2C interface, When it is 0,use SPI interface
-#define USEIIC 1
+#define USEIIC 0
 
 #include "secrets.h"
 #include "i2c_bus_recovery.h"
@@ -33,14 +33,14 @@
 
 #if(USEIIC)
 	Adafruit_BME280 bme;
-	const uint8_t BME280_I2C_ADDR = 0x77;   // change to 0x76 if that's your wiring
+	const uint8_t BME280_I2C_ADDR = 0x76;   // change to 0x77 if that's your wiring
 	const uint8_t BME280_CHIPID_REG = 0xD0; // datasheet-fixed register, always returns 0x60 when healthy
 	const uint8_t BME280_EXPECTED_CHIPID = 0x60;
 #else
-	#define SPI_SCK 13
-	#define SPI_MISO 12
-	#define SPI_MOSI 11
-	#define SPI_CS 10
+	#define SPI_SCK  13
+	#define SPI_MISO 0 // as 12 is a strapping pin
+	#define SPI_MOSI 32
+	#define SPI_CS   33
 	Adafruit_BME280 bme(SPI_CS, SPI_MOSI, SPI_MISO, SPI_SCK);
 #endif
 
@@ -145,9 +145,9 @@ void initializeSDCard()
     Serial.printf("SD_MMC Card Size: %lluMB\n", cardSize);
 
     // Best for preserving previous logs!
-    appendFile(SD_MMC, LOG_FILE_ON_SD, "***********\n");
+    //appendFile(SD_MMC, LOG_FILE_ON_SD, "***********\n");
     // otherwise:
-    //writeFile(SD_MMC, LOG_FILE_ON_SD, "***********\n");
+    writeFile(SD_MMC, LOG_FILE_ON_SD, "***********\n");
 }
 
 void monitorHealth()
@@ -266,19 +266,19 @@ void recoverSensor()
     Serial.println("BME280 fault detected (bad chip ID and/or stale readings) - recovering...");
     appendFile(SD_MMC, LOG_FILE_ON_SD, "fault detected (bad chip ID and/or stale readings) - recovering...\n");
 
-    i2c_bus_recover();          // bit-bang SCL/SDA to free a wedged bus, then Wire.begin() again
-    bool ok = bme.begin(BME280_I2C_ADDR, &Wire);  // full re-init incl. re-reading calibration
-    if (!ok) 
-    {
-        Serial.println("Re-init failed - will retry on next request.");
-        appendFile(SD_MMC, LOG_FILE_ON_SD, "Re-init failed - will retry on next request.\n");
-    } else 
-    {
-        Serial.println("Sensor re-initialised.");
-        appendFile(SD_MMC, LOG_FILE_ON_SD, "Sensor re-initialised.\n");
-    }
-    repeatCount = 0;
-    lastTemp = lastHum = lastPres = NAN;
+    // i2c_bus_recover();          // bit-bang SCL/SDA to free a wedged bus, then Wire.begin() again
+    // bool ok = bme.begin(BME280_I2C_ADDR, &Wire);  // full re-init incl. re-reading calibration
+    // if (!ok) 
+    // {
+    //     Serial.println("Re-init failed - will retry on next request.");
+    //     appendFile(SD_MMC, LOG_FILE_ON_SD, "Re-init failed - will retry on next request.\n");
+    // } else 
+    // {
+    //     Serial.println("Sensor re-initialised.");
+    //     appendFile(SD_MMC, LOG_FILE_ON_SD, "Sensor re-initialised.\n");
+    // }
+    // repeatCount = 0;
+    // lastTemp = lastHum = lastPres = NAN;
     delay(100);
 }
 
@@ -312,28 +312,28 @@ void setup()
 
 String buildJson()
 {
-    // Step 1: hardware-truth check, independent of any reading's value
-    if (!chipIdIsHealthy()) {
-        recoverSensor();
-    }
+    // // Step 1: hardware-truth check, independent of any reading's value
+    // if (!chipIdIsHealthy()) {
+    //     recoverSensor();
+    // }
 
-    // Step 2: take the actual reading
-    float temp = bme.readTemperature();
-    float hum  = bme.readHumidity();
-    float pres = bme.readPressure() / 100.0F;
+    // // Step 2: take the actual reading
+    // float temp = bme.readTemperature();
+    // float hum  = bme.readHumidity();
+    // float pres = bme.readPressure() / 100.0F;
 
-    // Step 3: staleness check using this reading; if it trips, recover and
-    // re-read once so the client gets a fresh value rather than the one
-    // that triggered the recovery.
-    if (readingIsStale(temp, hum, pres)) {
-        recoverSensor();
-        temp = bme.readTemperature();
-        hum  = bme.readHumidity();
-        pres = bme.readPressure() / 100.0F;
-        // reset tracking with the fresh values so we don't immediately
-        // re-trigger on the next call
-        lastTemp = temp; lastHum = hum; lastPres = pres; repeatCount = 0;
-    }
+    // // Step 3: staleness check using this reading; if it trips, recover and
+    // // re-read once so the client gets a fresh value rather than the one
+    // // that triggered the recovery.
+    // if (readingIsStale(temp, hum, pres)) {
+    //     recoverSensor();
+    //     temp = bme.readTemperature();
+    //     hum  = bme.readHumidity();
+    //     pres = bme.readPressure() / 100.0F;
+    //     // reset tracking with the fresh values so we don't immediately
+    //     // re-trigger on the next call
+    //     lastTemp = temp; lastHum = hum; lastPres = pres; repeatCount = 0;
+    // }
 
     // Read raw value
     uint8_t board_temp_raw = temprature_sens_read();
@@ -460,7 +460,7 @@ void handleClient(WiFiClient &client)
 
 void loop()
 {
-    monitorHealth();
+    // monitorHealth();
 
     WiFiClient client = server.accept();
     if (client) {
