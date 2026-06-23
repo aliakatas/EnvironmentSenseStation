@@ -94,6 +94,9 @@ The response is in json format as follows:
       "value": <pressure>,
       "unit": "hPa"
    },
+   "health": {
+      "sensor":"ok" // or "degraded"
+   },
    "status": "ok"
 }
 ```
