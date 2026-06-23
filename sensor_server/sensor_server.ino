@@ -145,9 +145,9 @@ void initializeSDCard()
     Serial.printf("SD_MMC Card Size: %lluMB\n", cardSize);
 
     // Best for preserving previous logs!
-    //appendFile(SD_MMC, LOG_FILE_ON_SD, "***********\n");
+    appendFile(SD_MMC, LOG_FILE_ON_SD, "***********\n");
     // otherwise:
-    writeFile(SD_MMC, LOG_FILE_ON_SD, "***********\n");
+    // writeFile(SD_MMC, LOG_FILE_ON_SD, "***********\n");
 }
 
 void monitorHealth()
@@ -346,8 +346,9 @@ String buildJson()
 
     JsonDocument health;
     // the wifi bit, is it a bit ridiculous...?
-    health["wifi"] = WiFi.status() == WL_CONNECTED ? "ok" : "disconnected";
-    health["sensor"] = (isnan(temperature_value) || isnan(humidity_value) || isnan(pressure_value)) ? "degraded" : "ok";
+    // health["wifi"] = WiFi.status() == WL_CONNECTED ? "ok" : "disconnected";
+    bool degraded_state = isnan(temperature_value) || isnan(humidity_value) || isnan(pressure_value) || temperature_value < -50;
+    health["sensor"] = degraded_state ? "degraded" : "ok";
 
     JsonDocument board_temperature;
     board_temperature["value"] = board_temp_celsius;
