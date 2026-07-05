@@ -1,46 +1,18 @@
-# import requests
-import socket
+import requests
 from datetime import datetime, timedelta
 import time
 
 
-def parse_payload(payload):
-    fields = dict(item.split("=") for item in payload.split(","))
-
-    if fields["S"] != "ok":
-      raise RuntimeError(fields.get("E", "unknown"))
-
-    return {
-        "board_temperature": {
-            "value": float(fields["BT"]),
-            "unit": "C"
-        },
-        "temperature": {
-            "value": float(fields["T"]),
-            "unit": "C"
-        },
-        "humidity": {
-            "value": float(fields["H"]),
-            "unit": "%"
-        },
-        "pressure": {
-            "value": float(fields["P"]),
-            "unit": "hPa"
-        },
-        "status": fields["S"]
-    }
-
-
 def query_environmental_sensors(url, port):
    try:
-      sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-      sock.settimeout(2)
+      resp = requests.get(f"http://{url}:{port}", timeout=2)
+      resp.raise_for_status()
+      data = resp.json()
 
-      sock.sendto(b"SENSORS", (url, port))
-      rdata, _ = sock.recvfrom(256)
-
-      data = parse_payload(rdata.decode())
-
+      if data.get("health", None) is not None:
+         if data.get("health").get("sensor", "not ok") in ["not ok", "degraded"]:
+            raise RuntimeError("Sensor degraded")
+      
       board_temperature = data.get("board_temperature").get("value")
       temperature = data.get("temperature").get("value")
       humidity = data.get("humidity").get("value")
@@ -49,8 +21,6 @@ def query_environmental_sensors(url, port):
       # Format as "YYYY-MM-DD hh:mm:ss"
       formatted_time = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
 
-      sock.close()
-      
       return {
          "board_temperature": board_temperature,
          "temperature": temperature,
@@ -71,15 +41,6 @@ def perform_sensor_data_averaging(url, port):
    if not sensor_data:
       return None
    
-   # This one we can keep...
-   # timestamp = sensor_data["timestamp"]
-   # averaged_data = {
-   #    "board_temperature": sensor_data["board_temperature"],
-   #    "temperature": sensor_data["temperature"],
-   #    "humidity": sensor_data["humidity"],
-   #    "pressure": sensor_data["pressure"]
-   # }
-   # Instead, use current time as timestamp (microcontroler time may be off)
    timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
    averaged_data = {
       "board_temperature": 0.,
