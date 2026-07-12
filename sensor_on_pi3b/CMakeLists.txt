@@ -26,3 +26,15 @@ target_include_directories(${PROJECT_NAME} PUBLIC
 target_link_libraries(${PROJECT_NAME} PUBLIC
     gpiod
 )
+
+add_library(mongoose STATIC
+    "${CMAKE_CURRENT_SOURCE_DIR}/mongoose/mongoose.c"
+)
+
+target_include_directories(mongoose PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}/mongoose")
+
+add_executable(bme280_server
+    "${CMAKE_CURRENT_SOURCE_DIR}/main_http_server.cpp"
+)
+
+target_link_libraries(bme280_server PRIVATE mongoose)
