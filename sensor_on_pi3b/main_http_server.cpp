@@ -1,10 +1,17 @@
 // Minimal Mongoose-based HTTP server exposing on-demand BME280 readings.
 
+#include "sensor_utilities.h"
+
+#include "bme280.h"
+#include "json.hpp"
 #include "mongoose.h"
 
+#include <linux/spi/spidev.h>
 #include <csignal>
 #include <cstdio>
 #include <string>
+
+struct bme280_dev dev;
 
 static volatile std::sig_atomic_t g_stop = 0;
 
@@ -22,7 +29,37 @@ static void on_signal(int) {
 // ---------------------------------------------------------------------
 static std::string read_sensor_payload() {
     // TODO: replace with real sensor read + nlohmann::json serialization
-    return R"({"board_temperature": {"value": 50,"unit": "C"},"temperature": {"value": 23,"unit": "C"},"humidity": {"value": 69,"unit": "%"},"pressure": {"value": 1023,"unit": "hPa"},"health": {"sensor":"ok"},"status": "ok"})";
+    dev->settings.osr_h = BME280_OVERSAMPLING_1X;
+    dev->settings.osr_p = BME280_OVERSAMPLING_16X;
+    dev->settings.osr_t = BME280_OVERSAMPLING_2X;
+    dev->settings.filter = BME280_FILTER_COEFF_16;
+    dev->settings.standby_time = BME280_STANDBY_TIME_62_5_MS;
+
+    uint8_t settings_sel = BME280_OSR_PRESS_SEL | BME280_OSR_TEMP_SEL | BME280_OSR_HUM_SEL |
+                            BME280_STANDBY_SEL | BME280_FILTER_SEL;
+    int8_t rslt = bme280_set_sensor_settings(settings_sel, dev);
+    rslt = bme280_set_sensor_mode(BME280_NORMAL_MODE, dev);
+    if (rslt != BME280_OK) {
+        return "";
+    }
+
+    struct bme280_data comp_data;
+    dev->delay_ms(70);
+    rslt = bme280_get_sensor_data(BME280_ALL, &comp_data, dev);
+    if (rslt != BME280_OK) {
+        return "";
+    }
+
+    nlohmann::json payload = {
+        {"board_temperature", {{"value", 55.0f}, {"unit", "C"}}},
+        {"temperature", {{"value", comp_data.temperature}, {"unit", "C"}}},
+        {"humidity", {{"value", comp_data.humidity}, {"unit", "%"}}},
+        {"pressure", {{"value", comp_data.pressure / 100.0f}, {"unit", "hPa"}}},
+        {"health", {{"sensor", "ok"}}},
+        {"status", "ok"}
+    };
+
+    return payload.dump();
 }
 
 static void handle_sensor_request(struct mg_connection *c) {
@@ -62,6 +99,19 @@ int main(int argc, char *argv[]) {
 
     std::signal(SIGINT, on_signal);
     std::signal(SIGTERM, on_signal);
+
+    dev.dev_id = 0;
+    dev.intf = BME280_SPI_INTF;
+    dev.read = sensor_utilities::user_spi_read;
+    dev.write = sensor_utilities::user_spi_write;
+    dev.delay_ms = sensor_utilities::user_delay_ms;
+
+    int8_t rslt = bme280_init(&dev);
+    std::printf("\r\nBME280 Init Result is: %d\r\n", rslt);
+    if (rslt != BME280_OK) 
+    {
+        return EXIT_FAILURE;
+    }
 
     struct mg_mgr mgr;
     mg_mgr_init(&mgr);
