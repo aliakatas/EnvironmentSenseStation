@@ -29,23 +29,23 @@ static void on_signal(int) {
 // ---------------------------------------------------------------------
 static std::string read_sensor_payload() {
     // TODO: replace with real sensor read + nlohmann::json serialization
-    dev->settings.osr_h = BME280_OVERSAMPLING_1X;
-    dev->settings.osr_p = BME280_OVERSAMPLING_16X;
-    dev->settings.osr_t = BME280_OVERSAMPLING_2X;
-    dev->settings.filter = BME280_FILTER_COEFF_16;
-    dev->settings.standby_time = BME280_STANDBY_TIME_62_5_MS;
+    dev.settings.osr_h = BME280_OVERSAMPLING_1X;
+    dev.settings.osr_p = BME280_OVERSAMPLING_16X;
+    dev.settings.osr_t = BME280_OVERSAMPLING_2X;
+    dev.settings.filter = BME280_FILTER_COEFF_16;
+    dev.settings.standby_time = BME280_STANDBY_TIME_62_5_MS;
 
     uint8_t settings_sel = BME280_OSR_PRESS_SEL | BME280_OSR_TEMP_SEL | BME280_OSR_HUM_SEL |
                             BME280_STANDBY_SEL | BME280_FILTER_SEL;
-    int8_t rslt = bme280_set_sensor_settings(settings_sel, dev);
-    rslt = bme280_set_sensor_mode(BME280_NORMAL_MODE, dev);
+    int8_t rslt = bme280_set_sensor_settings(settings_sel, &dev);
+    rslt = bme280_set_sensor_mode(BME280_NORMAL_MODE, &dev);
     if (rslt != BME280_OK) {
         return "";
     }
 
     struct bme280_data comp_data;
-    dev->delay_ms(70);
-    rslt = bme280_get_sensor_data(BME280_ALL, &comp_data, dev);
+    dev.delay_ms(70);
+    rslt = bme280_get_sensor_data(BME280_ALL, &comp_data, &dev);
     if (rslt != BME280_OK) {
         return "";
     }
