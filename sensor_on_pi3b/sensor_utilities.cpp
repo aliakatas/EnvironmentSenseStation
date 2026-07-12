@@ -1,7 +1,13 @@
 #include "sensor_utilities.h"
 
+#include "bme280.h"
+
 #include <gpiod.h>
 #include <linux/spi/spidev.h>
+#include <sys/ioctl.h>
+#include <unistd.h>
+#include <cstdio>
+
 
 namespace sensor_utilities 
 {
