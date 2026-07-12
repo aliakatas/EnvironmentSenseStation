@@ -3,6 +3,14 @@
 
 namespace sensor_utilities 
 {
+    void SPI_BME280_CS_High(void);
+
+    void SPI_BME280_CS_Low(void);
+
+    bool chip_select_ready();
+
+    bool set_chip_select(bool high);
+    
     bool configure_spi_device();
 
     bool configure_chip_select();

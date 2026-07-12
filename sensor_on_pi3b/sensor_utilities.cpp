@@ -7,7 +7,11 @@
 #include <sys/ioctl.h>
 #include <unistd.h>
 #include <cstdio>
-
+#include <cerrno>
+#include <chrono>
+#include <thread>
+#include <cstdlib>
+#include <cstring>
 
 namespace sensor_utilities 
 {
@@ -15,6 +19,40 @@ namespace sensor_utilities
     int spi_fd = -1;
     gpiod_chip* gpio_chip = nullptr;
     gpiod_line_request* cs_request = nullptr;
+
+    void SPI_BME280_CS_High(void)
+    {
+        if (chip_select_ready()) {
+            (void)set_chip_select(true);
+        }
+    }
+
+    void SPI_BME280_CS_Low(void)
+    {
+        if (chip_select_ready()) {
+            (void)set_chip_select(false);
+        }
+    }
+
+    bool chip_select_ready()
+   {
+      return cs_request != nullptr;
+   }
+
+   bool set_chip_select(bool high)
+   {
+      if (cs_request == nullptr) {
+         return false;
+      }
+
+      const auto value = high ? GPIOD_LINE_VALUE_ACTIVE : GPIOD_LINE_VALUE_INACTIVE;
+      if (gpiod_line_request_set_value(cs_request, CS_PIN, value) < 0) {
+         std::cerr << "Failed to set GPIO line " << CS_PIN << " value: " << std::strerror(errno) << '\n';
+         return false;
+      }
+
+      return true;
+   }
 
     bool configure_spi_device()
     {
