@@ -12,6 +12,7 @@
 #include <thread>
 #include <cstdlib>
 #include <cstring>
+#include <iostream>
 
 namespace sensor_utilities 
 {
