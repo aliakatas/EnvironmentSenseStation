@@ -35,14 +35,60 @@ namespace {
 
 int spi_fd = -1;
 gpiod_chip* gpio_chip = nullptr;
+#if defined(GPIOD_VERSION_MAJOR) && (GPIOD_VERSION_MAJOR >= 2)
+gpiod_line_request* cs_request = nullptr;
+#else
 gpiod_line* cs_line = nullptr;
+#endif
+
+bool chip_select_ready()
+{
+#if defined(GPIOD_VERSION_MAJOR) && (GPIOD_VERSION_MAJOR >= 2)
+   return cs_request != nullptr;
+#else
+   return cs_line != nullptr;
+#endif
+}
+
+bool set_chip_select(bool high)
+{
+#if defined(GPIOD_VERSION_MAJOR) && (GPIOD_VERSION_MAJOR >= 2)
+   if (cs_request == nullptr) {
+      return false;
+   }
+
+   const auto value = high ? GPIOD_LINE_VALUE_ACTIVE : GPIOD_LINE_VALUE_INACTIVE;
+   if (gpiod_line_request_set_value(cs_request, CS_PIN, value) < 0) {
+      std::cerr << "Failed to set GPIO line " << CS_PIN << " value: " << std::strerror(errno) << '\n';
+      return false;
+   }
+#else
+   if (cs_line == nullptr) {
+      return false;
+   }
+
+   if (gpiod_line_set_value(cs_line, high ? 1 : 0) < 0) {
+      std::cerr << "Failed to set GPIO line " << CS_PIN << " value: " << std::strerror(errno) << '\n';
+      return false;
+   }
+#endif
+
+   return true;
+}
 
 void close_transport()
 {
+#if defined(GPIOD_VERSION_MAJOR) && (GPIOD_VERSION_MAJOR >= 2)
+   if (cs_request != nullptr) {
+      gpiod_line_request_release(cs_request);
+      cs_request = nullptr;
+   }
+#else
    if (cs_line != nullptr) {
       gpiod_line_release(cs_line);
       cs_line = nullptr;
    }
+#endif
 
    if (gpio_chip != nullptr) {
       gpiod_chip_close(gpio_chip);
@@ -86,6 +132,60 @@ bool configure_chip_select()
       return false;
    }
 
+#if defined(GPIOD_VERSION_MAJOR) && (GPIOD_VERSION_MAJOR >= 2)
+   gpiod_line_settings* line_settings = gpiod_line_settings_new();
+   gpiod_line_config* line_config = gpiod_line_config_new();
+   gpiod_request_config* request_config = gpiod_request_config_new();
+
+   if (line_settings == nullptr || line_config == nullptr || request_config == nullptr) {
+      std::cerr << "Failed to allocate GPIO line request configuration" << '\n';
+      if (request_config != nullptr) {
+         gpiod_request_config_free(request_config);
+      }
+      if (line_config != nullptr) {
+         gpiod_line_config_free(line_config);
+      }
+      if (line_settings != nullptr) {
+         gpiod_line_settings_free(line_settings);
+      }
+      close_transport();
+      return false;
+   }
+
+   bool configured = false;
+   do {
+      if (gpiod_line_settings_set_direction(line_settings, GPIOD_LINE_DIRECTION_OUTPUT) < 0) {
+         break;
+      }
+
+      if (gpiod_line_settings_set_output_value(line_settings, GPIOD_LINE_VALUE_ACTIVE) < 0) {
+         break;
+      }
+
+      unsigned int offsets[] = { CS_PIN };
+      if (gpiod_line_config_add_line_settings(line_config, offsets, 1, line_settings) < 0) {
+         break;
+      }
+
+      gpiod_request_config_set_consumer(request_config, "bme280-spi-cs");
+      cs_request = gpiod_chip_request_lines(gpio_chip, request_config, line_config);
+      if (cs_request == nullptr) {
+         break;
+      }
+
+      configured = true;
+   } while (false);
+
+   gpiod_request_config_free(request_config);
+   gpiod_line_config_free(line_config);
+   gpiod_line_settings_free(line_settings);
+
+   if (!configured) {
+      std::cerr << "Failed to request GPIO line " << CS_PIN << " for output: " << std::strerror(errno) << '\n';
+      close_transport();
+      return false;
+   }
+#else
    cs_line = gpiod_chip_get_line(gpio_chip, CS_PIN);
    if (cs_line == nullptr) {
       std::cerr << "Failed to request GPIO line " << CS_PIN << ": " << std::strerror(errno) << '\n';
@@ -98,6 +198,7 @@ bool configure_chip_select()
       close_transport();
       return false;
    }
+#endif
 
    return true;
 }
@@ -132,15 +233,15 @@ int8_t spi_transfer(const uint8_t* tx_buffer, uint8_t* rx_buffer, uint16_t lengt
 
 void SPI_BME280_CS_High(void)
 {
-   if (cs_line != nullptr) {
-      gpiod_line_set_value(cs_line, 1);
+   if (chip_select_ready()) {
+      (void)set_chip_select(true);
    }
 }
 
 void SPI_BME280_CS_Low(void)
 {
-   if (cs_line != nullptr) {
-      gpiod_line_set_value(cs_line, 0);
+   if (chip_select_ready()) {
+      (void)set_chip_select(false);
    }
 }
 
@@ -155,7 +256,7 @@ int8_t user_spi_read(uint8_t dev_id, uint8_t reg_addr, uint8_t *reg_data, uint16
 
    (void)dev_id;
 
-   if (spi_fd < 0 || cs_line == nullptr) {
+   if (spi_fd < 0 || !chip_select_ready()) {
       return BME280_E_COMM_FAIL;
    }
 
@@ -183,7 +284,7 @@ int8_t user_spi_write(uint8_t dev_id, uint8_t reg_addr, uint8_t *reg_data, uint1
 
    (void)dev_id;
 
-   if (spi_fd < 0 || cs_line == nullptr) {
+   if (spi_fd < 0 || !chip_select_ready()) {
       return BME280_E_COMM_FAIL;
    }
 
