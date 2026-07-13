@@ -38,7 +38,7 @@ if __name__ == "__main__":
             print(f"Failed to write data at {now}")
 
       except Exception as e:
-         print(f"[{now}, {sensor["name"]}] An error occurred: {e}")
+         print(f"[{now}, {sensor['name']}] An error occurred: {e}")
 
    print("*************************")
 
