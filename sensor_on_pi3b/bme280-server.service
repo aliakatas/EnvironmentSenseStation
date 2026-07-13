@@ -11,11 +11,14 @@ RestartSec=2
 User=aristotelis
 WorkingDirectory=/usr/local/bin
 
-# Optional hardening — safe for a small HTTP daemon like this
+# Hardening — safe for a small HTTP daemon like this
 NoNewPrivileges=true
 ProtectSystem=strict
 ProtectHome=true
 PrivateTmp=true
+
+# Grants read/write access to GPIO and SPI files under /dev
+ReadWritePaths=/dev/gpiomem /dev/gpiochip0 /dev/spidev0.0 /dev/spidev0.1
 
 [Install]
 WantedBy=multi-user.target
