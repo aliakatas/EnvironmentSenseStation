@@ -10,6 +10,9 @@
 #include <csignal>
 #include <cstdio>
 #include <string>
+#include <thread>
+#include <iostream>
+#include <chrono>
 
 struct bme280_dev dev;
 
