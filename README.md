@@ -16,6 +16,24 @@ On Raspberry Pi OS, install the development packages before building it:
 sudo apt install build-essential cmake libgpiod-dev
 ```
 
+Install with:
+```bash
+sudo cp bme280_server /usr/local/bin/
+```
+
+Link and enable the service:
+```bash
+sudo ln bme280-server.service /etc/systemd/system/bme280-server.service
+sudo systemctl daemon-reload
+sudo systemctl enable --now bme280-server.service
+```
+
+Check it came up cleanly:
+```bash
+systemctl status bme280-server.service
+journalctl -u bme280-server.service -f
+```
+
 The program expects SPI bus 0 chip select 0 to be available at `/dev/spidev0.0` and uses BCM GPIO 27 as the manual CS line via `/dev/gpiochip0`.
 
 ## Hardware

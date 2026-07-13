@@ -1,0 +1,21 @@
+[Unit]
+Description=BME280 sensor HTTP server
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+ExecStart=/usr/local/bin/bme280_server
+Restart=on-failure
+RestartSec=2
+User=aristotelis
+WorkingDirectory=/usr/local/bin
+
+# Optional hardening — safe for a small HTTP daemon like this
+NoNewPrivileges=true
+ProtectSystem=strict
+ProtectHome=true
+PrivateTmp=true
+
+[Install]
+WantedBy=multi-user.target
