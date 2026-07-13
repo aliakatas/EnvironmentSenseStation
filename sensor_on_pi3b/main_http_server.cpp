@@ -100,6 +100,17 @@ int main(int argc, char *argv[]) {
     std::signal(SIGINT, on_signal);
     std::signal(SIGTERM, on_signal);
 
+    std::atexit(sensor_utilities::close_transport);
+
+    // Give the sensor some time to warm up
+    const int warmup_time_seconds = 2;
+    std::cout << "Warming up the sensor for " << warmup_time_seconds << " seconds..." << std::endl;
+    std::this_thread::sleep_for(std::chrono::seconds(warmup_time_seconds));
+
+    if (!sensor_utilities::initialize_transport()) {
+        return EXIT_FAILURE;
+    }
+
     dev.dev_id = 0;
     dev.intf = BME280_SPI_INTF;
     dev.read = sensor_utilities::user_spi_read;
