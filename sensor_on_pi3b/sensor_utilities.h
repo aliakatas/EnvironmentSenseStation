@@ -10,7 +10,7 @@ namespace sensor_utilities
     bool chip_select_ready();
 
     bool set_chip_select(bool high);
-    
+
     bool configure_spi_device();
 
     bool configure_chip_select();
@@ -18,6 +18,8 @@ namespace sensor_utilities
     bool initialize_transport();
 
     void close_transport();
+
+    int8_t spi_transfer(const uint8_t* tx_buffer, uint8_t* rx_buffer, uint16_t length);
 
     void user_delay_ms(uint32_t period);
 

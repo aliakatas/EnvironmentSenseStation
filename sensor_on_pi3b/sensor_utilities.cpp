@@ -159,6 +159,23 @@ namespace sensor_utilities
         }
     }
 
+    int8_t spi_transfer(const uint8_t* tx_buffer, uint8_t* rx_buffer, uint16_t length)
+    {
+        struct spi_ioc_transfer transfer = {};
+        transfer.tx_buf = reinterpret_cast<unsigned long>(tx_buffer);
+        transfer.rx_buf = reinterpret_cast<unsigned long>(rx_buffer);
+        transfer.len = length;
+        transfer.speed_hz = SPI_SPEED_HZ;
+        transfer.bits_per_word = 8;
+
+        if (ioctl(spi_fd, SPI_IOC_MESSAGE(1), &transfer) < 0) {
+            std::cerr << "SPI transfer failed: " << std::strerror(errno) << '\n';
+            return BME280_E_COMM_FAIL;
+        }
+
+        return BME280_OK;
+    }
+
     void user_delay_ms(uint32_t period)
     {
         std::this_thread::sleep_for(std::chrono::milliseconds(period));
