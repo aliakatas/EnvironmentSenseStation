@@ -44,4 +44,4 @@ target_include_directories(bme280_server PUBLIC
     "${CMAKE_CURRENT_SOURCE_DIR}/json"
 )
 
-target_link_libraries(bme280_server PRIVATE mongoose)
+target_link_libraries(bme280_server PRIVATE mongoose gpiod)
