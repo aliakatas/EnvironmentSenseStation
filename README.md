@@ -136,8 +136,17 @@ The process is driven by the [main.py](./server/main.py) script and the [require
 Before launching, you will need a `secrets.py` file with the following info:
 ```python
 # secrets.py
-URL=        # the url to request data from
-HOST=       # the name or IP of the host of the database
+SENSORS= [
+    {
+        "url":  , # sensor's IP or sensor's name or sensor's URL. It may include a path or not
+        "port": , # the port the sensor listens to
+        "location": , # the location of sensor
+        "name": # the name of sensor
+    },
+    {
+      ... # repeat the block above as many times as needed
+    }
+]
 DATABASE=   # the name of the database
 DBUSER=     # the user name for the database
 DBUSERPASS= # the user's password for the database
