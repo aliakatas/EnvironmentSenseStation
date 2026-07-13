@@ -52,7 +52,9 @@ def create_table_if_not_exists(
          pressure FLOAT,
          board_temperature FLOAT,
          comment TEXT,
-         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+         location TEXT,
+         sensor_name TEXT
       );
       """
       
@@ -131,8 +133,8 @@ def write_data_to_postgres(
       
       # Insert data records
       insert_query = f"""
-      INSERT INTO {table_name} (date_time, temperature, humidity, pressure, comment, board_temperature)
-      VALUES (%s, %s, %s, %s, %s, %s);
+      INSERT INTO {table_name} (date_time, temperature, humidity, pressure, comment, board_temperature, location, sensor_name)
+      VALUES (%s, %s, %s, %s, %s, %s, %s, %s);
       """
       
       cursor.execute(insert_query, 
@@ -141,7 +143,9 @@ def write_data_to_postgres(
                         data_records["humidity"],
                         data_records["pressure"],
                         comment,
-                        data_records["board_temperature"]))
+                        data_records["board_temperature"],
+                        data_records["location"],
+                        data_records["name"]))
       
       # Commit the transaction
       connection.commit()

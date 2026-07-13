@@ -1,0 +1,24 @@
+[Unit]
+Description=BME280 sensor HTTP server
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+ExecStart=/usr/local/bin/bme280_server
+Restart=on-failure
+RestartSec=2
+User=aristotelis
+WorkingDirectory=/usr/local/bin
+
+# Hardening — safe for a small HTTP daemon like this
+NoNewPrivileges=true
+ProtectSystem=strict
+ProtectHome=true
+PrivateTmp=true
+
+# Grants read/write access to GPIO and SPI files under /dev
+ReadWritePaths=/dev/gpiomem /dev/gpiochip0 /dev/spidev0.0 /dev/spidev0.1
+
+[Install]
+WantedBy=multi-user.target

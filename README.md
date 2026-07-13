@@ -7,6 +7,35 @@ Monitor environmental parameters using sensors driven by an ESP32.
 - Serve data over LAN using the onboard WiFi.
 - Additional system to automate and drive the data collection and storage to a database.
 
+## Raspberry Pi reader
+The standalone Raspberry Pi reader in [sensor_on_pi3b/main.cpp](./sensor_on_pi3b/main.cpp) now uses the Linux `spidev` interface for SPI transfers and `libgpiod` for the manual chip-select GPIO instead of WiringPi.
+
+On Raspberry Pi OS, install the development packages before building it:
+
+```bash
+sudo apt install build-essential cmake libgpiod-dev
+```
+
+Install with:
+```bash
+sudo ln build/bme280_server /usr/local/bin/bme280_server
+```
+
+Link and enable the service:
+```bash
+sudo ln bme280-server.service /etc/systemd/system/bme280-server.service
+sudo systemctl daemon-reload
+sudo systemctl enable --now bme280-server.service
+```
+
+Check it came up cleanly:
+```bash
+systemctl status bme280-server.service
+journalctl -u bme280-server.service -f
+```
+
+The program expects SPI bus 0 chip select 0 to be available at `/dev/spidev0.0` and uses BCM GPIO 27 as the manual CS line via `/dev/gpiochip0`.
+
 ## Hardware
 - ESP32 board like [fnk0060](https://store.freenove.com/products/fnk0060) or [fnk0090](https://store.freenove.com/products/fnk0090).
 - BME280 sensor from [The Pi Hut](https://thepihut.com/products/bme280-environmental-sensor). Product [specs](https://www.waveshare.com/wiki/BME280_Environmental_Sensor).
