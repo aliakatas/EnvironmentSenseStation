@@ -9,6 +9,7 @@
 #include <linux/spi/spidev.h>
 #include <csignal>
 #include <cstdio>
+#include <fstream>
 #include <string>
 #include <thread>
 #include <iostream>
@@ -20,6 +21,23 @@ static volatile std::sig_atomic_t g_stop = 0;
 
 static void on_signal(int) {
     g_stop = 1;
+}
+
+static bool read_board_temperature_c(float &temperature_c) {
+    // Raspberry Pi exposes SoC temperature in millidegrees C via thermal zone 0.
+    std::ifstream thermal_file("/sys/class/thermal/thermal_zone0/temp");
+    if (!thermal_file.is_open()) {
+        return false;
+    }
+
+    long temperature_milli_c = 0;
+    thermal_file >> temperature_milli_c;
+    if (!thermal_file.good() && !thermal_file.eof()) {
+        return false;
+    }
+
+    temperature_c = static_cast<float>(temperature_milli_c) / 1000.0f;
+    return true;
 }
 
 // ---------------------------------------------------------------------
@@ -53,12 +71,15 @@ static std::string read_sensor_payload() {
         return "";
     }
 
+    float board_temperature_c = 0.0f;
+    const bool has_board_temperature = read_board_temperature_c(board_temperature_c);
+
     nlohmann::json payload = {
-        {"board_temperature", {{"value", 55.0f}, {"unit", "C"}}},
+        {"board_temperature", {{"value", has_board_temperature ? nlohmann::json(board_temperature_c) : nlohmann::json(nullptr)}, {"unit", "C"}}},
         {"temperature", {{"value", comp_data.temperature}, {"unit", "C"}}},
         {"humidity", {{"value", comp_data.humidity}, {"unit", "%"}}},
         {"pressure", {{"value", comp_data.pressure / 100.0f}, {"unit", "hPa"}}},
-        {"health", {{"sensor", "ok"}}},
+        {"health", {{"sensor", "ok"}, {"board_temperature", has_board_temperature ? "ok" : "unavailable"}}},
         {"status", "ok"}
     };
 
