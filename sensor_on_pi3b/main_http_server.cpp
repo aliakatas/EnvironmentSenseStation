@@ -79,7 +79,7 @@ static std::string read_sensor_payload() {
         {"temperature", {{"value", comp_data.temperature}, {"unit", "C"}}},
         {"humidity", {{"value", comp_data.humidity}, {"unit", "%"}}},
         {"pressure", {{"value", comp_data.pressure / 100.0f}, {"unit", "hPa"}}},
-        {"health", {{"sensor", "ok"}, {"board_temperature", has_board_temperature ? "ok" : "unavailable"}}},
+        {"health", {{"sensor", "ok"}}},
         {"status", "ok"}
     };
 
