@@ -2,17 +2,19 @@
 
 #include "bme280.h"
 
+#include <fcntl.h>
 #include <gpiod.h>
 #include <linux/spi/spidev.h>
 #include <sys/ioctl.h>
 #include <unistd.h>
-#include <cstdio>
+
 #include <cerrno>
 #include <chrono>
-#include <thread>
+#include <cstdio>
 #include <cstdlib>
 #include <cstring>
 #include <iostream>
+#include <thread>
 
 #define SPI_DEVICE "/dev/spidev0.0"
 #define GPIO_CHIP_DEVICE "/dev/gpiochip0"
