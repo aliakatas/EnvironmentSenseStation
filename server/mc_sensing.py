@@ -1,11 +1,22 @@
 import requests
 from datetime import datetime, timedelta
 import time
+from urllib.parse import urlsplit
+
+
+def split_url(url):
+    if "://" not in url:
+        url = "http://" + url
+    parts = urlsplit(url)
+    return parts.netloc, parts.path
 
 
 def query_environmental_sensors(url, port):
    try:
-      resp = requests.get(f"http://{url}:{port}", timeout=2)
+
+      domain, path = split_url(url)
+      
+      resp = requests.get(f"http://{domain}:{port}{path}", timeout=2)
       resp.raise_for_status()
       data = resp.json()
 
