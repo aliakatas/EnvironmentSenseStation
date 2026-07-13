@@ -34,6 +34,7 @@ add_library(mongoose STATIC
 target_include_directories(mongoose PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}/mongoose")
 
 add_executable(bme280_server
+    "${CMAKE_CURRENT_SOURCE_DIR}/bme280.c"
     "${CMAKE_CURRENT_SOURCE_DIR}/sensor_utilities.cpp"    
     "${CMAKE_CURRENT_SOURCE_DIR}/main_http_server.cpp"
 )
