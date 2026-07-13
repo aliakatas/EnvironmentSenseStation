@@ -14,6 +14,11 @@
 #include <cstring>
 #include <iostream>
 
+#define SPI_DEVICE "/dev/spidev0.0"
+#define GPIO_CHIP_DEVICE "/dev/gpiochip0"
+#define SPI_SPEED_HZ 2000000U
+#define CS_PIN 27
+
 namespace sensor_utilities 
 {
 
