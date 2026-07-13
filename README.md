@@ -18,7 +18,7 @@ sudo apt install build-essential cmake libgpiod-dev
 
 Install with:
 ```bash
-sudo cp bme280_server /usr/local/bin/
+sudo ln build/bme280_server /usr/local/bin/bme280_server
 ```
 
 Link and enable the service:
